@@ -2,10 +2,6 @@ require 'rexml/document'
 require 'net/http'
 
 class LearnsController < ApplicationController
-	model :ent_module
-	model :ent_seq
-	model :operation_log
-
   # GET /learns
   # GET /learns.xml
   def index
@@ -92,25 +88,44 @@ class LearnsController < ApplicationController
   
 	def show
 		@learn = Learn.find(params[:id])
+		view_mod = EntModule.find(:first,:conditions=>"id = #{@learn.contents}")
 		
 		@bodystr_html = ""
-		#node_array = GetXTDLNodeIDs(view_mod[:module_name].to_s)
-		@bodystr_html = GetXTDLSources(@learn.contents)
+		node_array = GetXTDLNodeIDs(view_mod[:module_name].to_s)
+		@bodystr_html = GetXTDLSources(node_array)
 	end
 	
-	def GetXTDLSources(node_id)
+	def GetXTDLSources(node_id_array)
 		str_buff = ""
 		
 		http = Net::HTTP.new('localhost',8080)
+
+		node_id_array.each do |node_res_ids|
+			resource_name = node_res_ids[0]
+			node_res_ids[1].each do |node_id|
+				# XML-DB から指定のXTDLリソースを取得
+				req = Net::HTTP::Get.new("/exist/rest/db/adel_v3/xtdl_resources/#{resource_name}.xml?_query=//*[@id=%22#{node_id}%22]")
+				res = http.request(req)
+				
+				# DOM を生成
+				doc = REXML::Document.new res.body
+				doc = doc.elements["//*[@id='#{node_id}']"]
+				if(doc)
+					str_buff += XTDLNodeSearch(doc)
+				end
+			end
+		end
 		
+=begin
 		#req = Net::HTTP::Get.new("/exist/rest/db/adel_v2/xtdl_resources/#{resource_name}.xml?_query=//*[@id=%22#{node_id}%22]")
 		req = Net::HTTP::Get.new("/exist/rest/db/adel_v3/xtdl_resources/list.xml?_query=//*[@id=%22#{node_id}%22]")
 		res = http.request(req)
-
+		
 		# DOM を生成
 		doc = REXML::Document.new res.body
 		doc = doc.elements["//*[@id='#{node_id}']"]
 		str_buff += XTDLNodeSearch(doc)
+=end
 		
 		#str_buff = res.body
 		return str_buff
@@ -175,4 +190,33 @@ class LearnsController < ApplicationController
 		
 		return str_buff
 	end
+	
+	def GetXTDLNodeIDs(ent_module_name)
+		# 学習者DBから教材モジュール　を取得
+		ent_mod = EntModule.find(:first,:conditions=>"module_name = '#{ent_module_name}'")
+		#モジュールからのrefs抽出
+		doc = REXML::Document.new ent_mod[:module_src]
+		doc = doc.elements["/module"]
+		# node_array [ [ resource_name , [res_id,...]], ... ]
+		node_array = []
+		# 現在学習中の学習シーケンシングIDを取得
+		# 現在の学習者レベルを取得
+		#cur_level = LevelLog.getCurrentLevel(session[:user].id , SeqLog.getCurrentId(session[:user].id) )
+		cur_level = 1	# とりあえず1で固定
+		
+		# 提示すべきIDを取得
+		doc.each_element { |elem_block|
+			elem_block.each_element { |elem_node|
+				level_array = elem_node.attributes["level"].split(/,/)
+				level_array.each do |level|
+					if /#{cur_level}|\*/ =~ level
+						node_array.push [ elem_node.attributes["resource"], elem_node.attributes["refs"].split(/,/)]
+						break
+					end
+				end
+			}
+		}
+		return node_array
+	end
+
 end
