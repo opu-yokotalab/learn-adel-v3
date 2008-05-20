@@ -2,6 +2,10 @@ require 'rexml/document'
 require 'net/http'
 
 class LearnsController < ApplicationController
+	model :ent_module
+	model :ent_seq
+	model :operation_log
+
   # GET /learns
   # GET /learns.xml
   def index
@@ -99,6 +103,7 @@ class LearnsController < ApplicationController
 		
 		http = Net::HTTP.new('localhost',8080)
 		
+		#req = Net::HTTP::Get.new("/exist/rest/db/adel_v2/xtdl_resources/#{resource_name}.xml?_query=//*[@id=%22#{node_id}%22]")
 		req = Net::HTTP::Get.new("/exist/rest/db/adel_v3/xtdl_resources/list.xml?_query=//*[@id=%22#{node_id}%22]")
 		res = http.request(req)
 
