@@ -86,9 +86,26 @@ class LearnsController < ApplicationController
     end
   end
   
+	def next
+		operation_event("next","-")
+	end
+	
 	def show
 		@learn = Learn.find(params[:id])
-		view_mod = EntModule.find(:first,:conditions=>"id = #{@learn.contents}")
+		#makeView(@learn.contents)
+		redirect_to :action => "view", :id => @learn.contents
+	end
+	
+	def view
+		if(params[:id])
+			makeView(params[:id])
+		else
+			makeView(ModuleLog.getCurrentModule(session[:user].id , SeqLog.getCurrentId(session[:user].id) ))
+		end
+	end
+	
+	def makeView(mod_id)
+		view_mod = EntModule.find(:first,:conditions=>"id = #{mod_id}")
 		
 		@bodystr_html = ""
 		node_array = GetXTDLNodeIDs(view_mod[:module_name].to_s)
@@ -110,24 +127,13 @@ class LearnsController < ApplicationController
 				# DOM を生成
 				doc = REXML::Document.new res.body
 				doc = doc.elements["//*[@id='#{node_id}']"]
+				
 				if(doc)
 					str_buff += XTDLNodeSearch(doc)
 				end
 			end
 		end
 		
-=begin
-		#req = Net::HTTP::Get.new("/exist/rest/db/adel_v2/xtdl_resources/#{resource_name}.xml?_query=//*[@id=%22#{node_id}%22]")
-		req = Net::HTTP::Get.new("/exist/rest/db/adel_v3/xtdl_resources/list.xml?_query=//*[@id=%22#{node_id}%22]")
-		res = http.request(req)
-		
-		# DOM を生成
-		doc = REXML::Document.new res.body
-		doc = doc.elements["//*[@id='#{node_id}']"]
-		str_buff += XTDLNodeSearch(doc)
-=end
-		
-		#str_buff = res.body
 		return str_buff
 	end
 
@@ -217,6 +223,106 @@ class LearnsController < ApplicationController
 			}
 		}
 		return node_array
+	end
+	
+	def operation_event(ope_code,e_arg)
+=begin
+		#ログインユーザのインスタンスを取得
+		user = User.find(session[:user].id)
+		cur_seq_id = SeqLog.getCurrentId(user[:id])
+		
+		#操作コード挿入前に時間を記録
+		time_log = RuleSearchTimeLog.new
+		time_log[:user_id] = user[:id]
+		time_log[:time_name] = 'before_perl'
+		time_log[:time_value] = Time.now
+		time_log.save
+=end
+		ope_log = OperationLog.new
+		# 操作コード ログに記録)
+		ope_log[:operation_code] = ope_code
+		# 操作識別コード　設定
+		ope_log[:dis_code] = Time.now.to_i
+		# Event引数　設定
+		ope_log[:event_arg] = e_arg
+		# テーブル間の関連付け
+		ope_log[:ent_seq_id] = cur_seq_id
+		ope_log[:user_id] = user[:id]
+		
+		OperationLog.transaction do
+			ope_log.save!
+			
+			# Action 実行
+			if action_array_obj = getActionCode(ope_log)
+				execAction(user,action_array_obj)
+			else
+				flash[:notice]="アクションコードの取得に失敗しました。"
+			end
+		end
+=begin
+		#Action決定後に時間を記録
+		time_log = RuleSearchTimeLog.new
+		time_log[:user_id] = user[:id]
+		time_log[:time_name] = 'after_perl'
+		time_log[:time_value] = Time.now
+		time_log.save
+=end
+		#redirect_to :action=>'view', :dis=>ope_log[:dis_code]
+		redirect_to :action=>'view'
+	end
+	
+	def execAction(user,action_array_obj)
+		#アクション実行
+		action_array_obj.each do |action_obj|
+			case action_obj[:action_code]
+			when /view/           # 教材モジュール提示
+				
+				# ログを追加
+				mod_log = ModuleLog.new
+				
+				if /end/ =~ action_obj[:action_value]
+					mod_log[:ent_module_id] = -1
+				else
+					ent_mod = EntModule.find(:first,:conditions=>"module_name = '#{action_obj[:action_value]}'")
+					mod_log[:ent_module_id] = ent_mod[:id]
+				end
+				
+				# シーケンシングと学習者のIDを関連付ける
+				cur_seq = SeqLog.getCurrentId(user[:id])
+				mod_log[:ent_seq_id] = cur_seq
+				mod_log[:user_id] = user[:id]
+				# 保存
+				mod_log.save!
+				
+				# そのあとのActionはスキップする
+				return
+=begin
+      when /retryall/       # 全体を再学習
+        # SEQの先頭IDを取得
+        # ModuleLog に追加
+      when /exit/           # 学習の終了
+        mod_log = ModuleLog.new
+        mod_log[:ent_module_id]=-1
+        mod_log[:ent_seq_id] =cur_seq
+        mod_log[:user_id] = user[:id]
+        mod_log.save!
+        
+        return        
+      when /changeLv/       # 学習者レベルの変更
+        lev_log = LevelLog.new
+        cur_seq = SeqLog.getCurrentId(user[:id])
+
+        # シーケンシングと学習者のIDを関連付ける
+        lev_log[:level] = action_obj[:action_value]
+        lev_log[:ent_seq_id] = cur_seq
+        lev_log[:user_id] = user[:id]
+        #保存
+        lev_log.save!
+      when /assist/
+=end
+			when /false/          # 実行するアクション無し
+			end
+		end
 	end
 
 end
