@@ -26,7 +26,8 @@ class OperationLog < ActiveRecord::Base
 		case ope_code
 		when /next/    # 次の教材を要求するイベントの処理
 			# 現在表示している教材モジュールを取得
-			mod_id = ModuleLog.getCurrentModule(self[:user_id] , self[:ent_seq_id])      
+			#mod_id = ModuleLog.getCurrentModule(self[:user_id] , self[:ent_seq_id])
+			mod_id = ModuleLog.getCurrentModule(self[:ent_seq_id])
 			if mod_id != -1
 				ent_mod = EntModule.find(mod_id)
 				mod_name = ent_mod[:module_name]
@@ -109,7 +110,6 @@ class OperationLog < ActiveRecord::Base
 
 		end
 
-=begin
     # ActionLogテーブルに格納　トランザクションブロック
     ActionLog.transaction do
       i=0
@@ -125,7 +125,6 @@ class OperationLog < ActiveRecord::Base
         i+=1
       end
     end
-=end
 	end
 	
 	# ルールリスト作成  
@@ -273,5 +272,5 @@ class OperationLog < ActiveRecord::Base
 	end
 
 
-  validates_inclusion_of :operation_code, :in=>%w(next toc changeLv)
+	validates_inclusion_of :operation_code, :in=>%w(next toc changeLv)
 end

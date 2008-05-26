@@ -86,22 +86,24 @@ class LearnsController < ApplicationController
     end
   end
   
-	def next
+	def nextModule
 		operation_event("next","-")
 	end
 	
 	def show
 		@learn = Learn.find(params[:id])
-		#makeView(@learn.contents)
-		redirect_to :action => "view", :id => @learn.contents
+		session[:seq_id] = @learn.contents
+		nextModule
+		#redirect_to :action => 'next'
 	end
 	
 	def view
-		if(params[:id])
-			makeView(params[:id])
-		else
-			makeView(ModuleLog.getCurrentModule(session[:user].id , SeqLog.getCurrentId(session[:user].id) ))
-		end
+		#if(session[:mod_id])
+			makeView(session[:mod_id])
+		#else
+		#	#makeView(ModuleLog.getCurrentModule(session[:user].id , SeqLog.getCurrentId(session[:user].id) ))
+		#	makeView(ModuleLog.getCurrentModule(SeqLog.getCurrentId(session[:user].id) ))
+		#end
 	end
 	
 	def makeView(mod_id)
@@ -225,6 +227,7 @@ class LearnsController < ApplicationController
 		return node_array
 	end
 	
+	#def operation_event(ope_code,e_arg)
 	def operation_event(ope_code,e_arg)
 =begin
 		#ログインユーザのインスタンスを取得
@@ -238,6 +241,8 @@ class LearnsController < ApplicationController
 		time_log[:time_value] = Time.now
 		time_log.save
 =end
+		cur_seq_id = session[:seq_id]
+		
 		ope_log = OperationLog.new
 		# 操作コード ログに記録)
 		ope_log[:operation_code] = ope_code
@@ -247,14 +252,16 @@ class LearnsController < ApplicationController
 		ope_log[:event_arg] = e_arg
 		# テーブル間の関連付け
 		ope_log[:ent_seq_id] = cur_seq_id
-		ope_log[:user_id] = user[:id]
+		#ope_log[:user_id] = user[:id]
 		
 		OperationLog.transaction do
+			#ECAルールの実行ログを取る，ルールを評価
 			ope_log.save!
 			
 			# Action 実行
 			if action_array_obj = getActionCode(ope_log)
-				execAction(user,action_array_obj)
+				#execAction(user,action_array_obj)
+				execAction(action_array_obj)
 			else
 				flash[:notice]="アクションコードの取得に失敗しました。"
 			end
@@ -268,10 +275,27 @@ class LearnsController < ApplicationController
 		time_log.save
 =end
 		#redirect_to :action=>'view', :dis=>ope_log[:dis_code]
-		redirect_to :action=>'view'
+		view
 	end
 	
-	def execAction(user,action_array_obj)
+	def getActionCode(table_obj)
+		#where = "user_id = :user_id AND dis_code = :dis_code"
+		where = "dis_code = :dis_code"
+		value = {:dis_code => "#{table_obj.dis_code}"}
+		# アクションコード取得失敗 -> 最大5秒間待つ
+		for i in 1..10
+			sleep 0.5
+			if action_array_obj = ActionLog.find(:all,:conditions=>[where,value],:order=>"id")
+				return action_array_obj
+			else
+				next
+			end
+		end
+		
+		return nil
+	end
+	
+	def execAction(action_array_obj)
 		#アクション実行
 		action_array_obj.each do |action_obj|
 			case action_obj[:action_code]
@@ -282,15 +306,18 @@ class LearnsController < ApplicationController
 				
 				if /end/ =~ action_obj[:action_value]
 					mod_log[:ent_module_id] = -1
+					session[:mod_id] = mod_log[:ent_module_id]
 				else
 					ent_mod = EntModule.find(:first,:conditions=>"module_name = '#{action_obj[:action_value]}'")
 					mod_log[:ent_module_id] = ent_mod[:id]
+					session[:mod_id] = mod_log[:ent_module_id]
 				end
 				
 				# シーケンシングと学習者のIDを関連付ける
-				cur_seq = SeqLog.getCurrentId(user[:id])
-				mod_log[:ent_seq_id] = cur_seq
-				mod_log[:user_id] = user[:id]
+				#cur_seq = SeqLog.getCurrentId(user[:id])
+				#mod_log[:ent_seq_id] = cur_seq
+				mod_log[:ent_seq_id] = session[:seq_id]
+				#mod_log[:user_id] = user[:id]
 				# 保存
 				mod_log.save!
 				
