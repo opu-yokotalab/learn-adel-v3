@@ -3,15 +3,34 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-  <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
-  <title>Learns: <%= controller.action_name %></title>
-  <%= stylesheet_link_tag 'learn' %>
+	<meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+	<title>Learns: <%= controller.action_name %></title>
+	<%= stylesheet_link_tag 'learn' %>
+	<link href="/stylesheets/prettify.css" type="text/css" rel="stylesheet" />
+	<script type="text/javascript" src="/javascripts/prettify.js"></script>
+
+	<script type="text/javascript">try{
+		window.addEventListener("load",prettyPrint,false);
+	}catch(e){
+		window.attachEvent("onload",prettyPrint);
+	}
+	</script>
 </head>
 <body>
 
 <p style="color: green"><%= flash[:notice] %></p>
 
-<%= yield  %>
+<% if @tocList %>
+<div id="toc" class="table_of_contents">
+<%= render :partial=>'toc' %>
+</div>
+
+<div class="content">
+<%= yield %>
+</div>
+<% else %>
+<%= yield %>
+<% end %>
 
 </body>
 </html>

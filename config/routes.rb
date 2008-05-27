@@ -32,6 +32,10 @@ ActionController::Routing::Routes.draw do |map|
   # See how all your routes lay out with "rake routes"
 
   # Install the default routes as the lowest priority.
+  map.connect 'view/:id', :controller => 'learns', :action => 'view'
+  map.connect 'next/:id', :controller => 'learns', :action => 'nextModule'
+  map.connect 'toc/:id', :controller => 'learns', :action => 'toc'
+  
   map.connect ':controller/:action/:id'
   map.connect ':controller/:action/:id.:format'
 end

@@ -3,29 +3,29 @@ class OperationLog < ActiveRecord::Base
 	after_save :rule_evaluate
 
 	def rule_evaluate
-		# ƒCƒxƒ“ƒgæ“¾
+		# ã‚¤ãƒ™ãƒ³ãƒˆå–å¾—
 		ope_code = self[:operation_code]
-		# SEQƒƒO‚©‚çŒ»İ‚ÌECAƒ‹[ƒ‹‚ğæ“¾
+		# SEQãƒ­ã‚°ã‹ã‚‰ç¾åœ¨ã®ECAãƒ«ãƒ¼ãƒ«ã‚’å–å¾—
 		ent_seq = EntSeq.find(self[:ent_seq_id])
 		seq_src = ent_seq[:seq_src]
-		# ‹ó”’‚Æ‰üs‚Ìíœ@¨@.‚Å•ªŠ„
+		# ç©ºç™½ã¨æ”¹è¡Œã®å‰Šé™¤ã€€â†’ã€€.ã§åˆ†å‰²
 		seq_src = seq_src.gsub(/(\s|\n)/,'').split(/\./)
 
-		# EcaRuleMatrix‚Ìì¬
+		# EcaRuleMatrixã®ä½œæˆ
 		seq_mat = makeEcaRuleMatrix(seq_src)
 
-		# seq_mat ƒf[ƒ^\‘¢
+		# seq_mat ãƒ‡ãƒ¼ã‚¿æ§‹é€ 
 		# next or changeLv [Event,[EventArg1,EventArg2],[ActionList],[ConditionList]]
 		# toc [Event,EventArg,[ActionList],[ConditionList]]
 		# ActionList [[ActionCode,ActionValue],... ]
 		# ConditionList [[Condition,Arg1,Arg2],... ]
 
-		# ƒ‹[ƒ‹‚ğ•]‰¿
-		# ƒCƒxƒ“ƒg–ˆ‚Éˆ—‚ğ•ªŠò
-		#### ‚à‚¤­‚µ‚«‚ê‚¢‚É‘‚«‚½‚¢EEE
+		# ãƒ«ãƒ¼ãƒ«ã‚’è©•ä¾¡
+		# ã‚¤ãƒ™ãƒ³ãƒˆæ¯ã«å‡¦ç†ã‚’åˆ†å²
+		#### ã‚‚ã†å°‘ã—ãã‚Œã„ã«æ›¸ããŸã„ãƒ»ãƒ»ãƒ»
 		case ope_code
-		when /next/    # Ÿ‚Ì‹³Ş‚ğ—v‹‚·‚éƒCƒxƒ“ƒg‚Ìˆ—
-			# Œ»İ•\¦‚µ‚Ä‚¢‚é‹³Şƒ‚ƒWƒ…[ƒ‹‚ğæ“¾
+		when /next/    # æ¬¡ã®æ•™æã‚’è¦æ±‚ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆã®å‡¦ç†
+			# ç¾åœ¨è¡¨ç¤ºã—ã¦ã„ã‚‹æ•™æãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã‚’å–å¾—
 			#mod_id = ModuleLog.getCurrentModule(self[:user_id] , self[:ent_seq_id])
 			mod_id = ModuleLog.getCurrentModule(self[:ent_seq_id])
 			if mod_id != -1
@@ -35,7 +35,7 @@ class OperationLog < ActiveRecord::Base
 				mod_name = "start"
 			end
 			
-			# condition‚Ìƒ}ƒbƒ`ƒ“ƒO
+			# conditionã®ãƒãƒƒãƒãƒ³ã‚°
 			n=0
 			while n < seq_mat.length do
 				if seq_mat[n][0] =~ /#{ope_code}/
@@ -49,7 +49,7 @@ class OperationLog < ActiveRecord::Base
 			end
 			
 			actionList = Array.new
-			# action‚ÌŒˆ’è
+			# actionã®æ±ºå®š
 			if n < seq_mat.length
 				actionList = seq_mat[n][2]
 				if seq_mat[n][1][1] =~ /end/
@@ -60,32 +60,32 @@ class OperationLog < ActiveRecord::Base
 			else
 				actionList.push("false,-")
 			end
+		when /toc/      # ç›®æ¬¡ã‹ã‚‰é¸æŠã‚¤ãƒ™ãƒ³ãƒˆã®å‡¦ç†
+			# conditionã®ãƒãƒƒãƒãƒ³ã‚°
+			n=0
+			while n < seq_mat.length do
+				if seq_mat[n][0] =~ /#{ope_code}/
+					if seq_mat[n][1] =~ /#{self[:event_arg]}/
+						if conditionMatching(seq_mat[n][3])
+							break
+						end
+					end
+				end
+				n+=1
+			end
+			
+			actionList = Array.new
+			# actionã®æ±ºå®š
+			if n < seq_mat.length
+				actionList = seq_mat[n][2]
+				actionList.push("view,#{seq_mat[n][1]}")
+			else
+				actionList.push("false,-")
+			end
 =begin
-    when /toc/      # –ÚŸ‚©‚ç‘I‘ğƒCƒxƒ“ƒg‚Ìˆ—
-      # condition‚Ìƒ}ƒbƒ`ƒ“ƒO
-      n=0
-      while n < seq_mat.length do
-        if seq_mat[n][0] =~ /#{ope_code}/
-            if seq_mat[n][1] =~ /#{self[:event_arg]}/
-                if conditionMatching(seq_mat[n][3])
-                  break
-                end
-            end
-        end
-        n+=1
-      end
 
-      actionList = Array.new
-      # action‚ÌŒˆ’è
-      if n < seq_mat.length
-        actionList = seq_mat[n][2]
-        actionList.push("view,#{seq_mat[n][1]}")
-      else
-        actionList.push("false,-")
-      end
-
-    when /changeLv/      # ƒŒƒxƒ‹•ÏX‚Ì—v‹‚ÌƒCƒxƒ“ƒg‚Ìˆ—
-      # condition‚Ìƒ}ƒbƒ`ƒ“ƒO
+    when /changeLv/      # ãƒ¬ãƒ™ãƒ«å¤‰æ›´ã®è¦æ±‚ã®ã‚¤ãƒ™ãƒ³ãƒˆã®å‡¦ç†
+      # conditionã®ãƒãƒƒãƒãƒ³ã‚°
       n=0
       while n < seq_mat.length do
         if seq_mat[n][0] =~ /#{ope_code}/
@@ -99,7 +99,7 @@ class OperationLog < ActiveRecord::Base
       end
 
       actionList = Array.new
-      # action‚ÌŒˆ’è
+      # actionã®æ±ºå®š
       if n < seq_mat.length
         actionList = seq_mat[n][2]
         actionList.push("changeLv,#{seq_mat[n][1][1]}")
@@ -109,28 +109,28 @@ class OperationLog < ActiveRecord::Base
 =end
 
 		end
-
-    # ActionLogƒe[ƒuƒ‹‚ÉŠi”[@ƒgƒ‰ƒ“ƒUƒNƒVƒ‡ƒ“ƒuƒƒbƒN
-    ActionLog.transaction do
-      i=0
-      while i < actionList.length do
-        code_value = actionList[i].split(/,/)
-        action = ActionLog.new
-        action[:user_id] = self[:user_id]
-        action[:ent_seq_id] = self[:ent_seq_id]
-        action[:action_code] = code_value[0]
-        action[:action_value] = code_value[1]
-        action[:dis_code] = self[:dis_code]
-        action.save!
-        i+=1
-      end
-    end
+	
+	# ActionLogãƒ†ãƒ¼ãƒ–ãƒ«ã«æ ¼ç´ã€€ãƒˆãƒ©ãƒ³ã‚¶ã‚¯ã‚·ãƒ§ãƒ³ãƒ–ãƒ­ãƒƒã‚¯
+	ActionLog.transaction do
+		i=0
+		while i < actionList.length do
+			code_value = actionList[i].split(/,/)
+			action = ActionLog.new
+			action[:user_id] = self[:user_id]
+			action[:ent_seq_id] = self[:ent_seq_id]
+			action[:action_code] = code_value[0]
+			action[:action_value] = code_value[1]
+			action[:dis_code] = self[:dis_code]
+			action.save!
+			i+=1
+		end
+	end
 	end
 	
-	# ƒ‹[ƒ‹ƒŠƒXƒgì¬  
+	# ãƒ«ãƒ¼ãƒ«ãƒªã‚¹ãƒˆä½œæˆ  
 	def makeEcaRuleMatrix(seq_src)
 		seq_mat = Array.new
-		# Parsing—p‚Ì³‹K•\Œ»‚ğ’è‹`
+		# Parsingç”¨ã®æ­£è¦è¡¨ç¾ã‚’å®šç¾©
 		opeReg = /(next|toc|changeLv)\((.+?),\[(.*?)\]\)(.*)/
 		
 		i=0
@@ -142,15 +142,15 @@ class OperationLog < ActiveRecord::Base
 				event_values = eca_array[2]
 			end
 			
-			#actionƒŠƒXƒgæ‚èo‚µ
+			#actionãƒªã‚¹ãƒˆå–ã‚Šå‡ºã—
 			actions = eca_array[3].split(/\],\[/)
 			actions.each do |t|
 				t.gsub!(/\[|\]/,'')
 			end
-			#conditionƒŠƒXƒgæ‚èo‚µ
+			#conditionãƒªã‚¹ãƒˆå–ã‚Šå‡ºã—
 			conditions = eca_array[4]
 			if conditions == ""
-				# ğŒ‚ª–³‚¢‚Æ‚«‚Í‹óƒŠƒXƒg‚ğ‘ã“ü
+				# æ¡ä»¶ãŒç„¡ã„ã¨ãã¯ç©ºãƒªã‚¹ãƒˆã‚’ä»£å…¥
 				conditions = []
 			else
 				conditions.gsub!(/:-/,'')
@@ -169,12 +169,12 @@ class OperationLog < ActiveRecord::Base
 
 	def conditionMatching(conditionList)
 		n=0
-		# •Ï”–¼@ƒ`ƒFƒbƒN—p@³‹K•\Œ»
+		# å¤‰æ•°åã€€ãƒã‚§ãƒƒã‚¯ç”¨ã€€æ­£è¦è¡¨ç¾
 		reg_var = /(^[A-Z]+[0-9]*[a-z]*[0-9]*$)/
-		# ğŒ®•]‰¿—p@³‹K•\Œ»
+		# æ¡ä»¶å¼è©•ä¾¡ç”¨ã€€æ­£è¦è¡¨ç¾
 		reg = /(^[A-Z]+[0-9]*[a-z]*[0-9]*)(!=|<=|>=|==|<|>)([0-9]+$)/ # ex.) Point <= 30
 		reg2 = /(^[0-9]+)(!=|<=|>=|==|<|>)([A-Z]+[0-9]*[a-z]*[0-9]*$)/ # ex.) 30 >= Point
-		# •Ï”Ši”[—pƒe[ƒuƒ‹
+		# å¤‰æ•°æ ¼ç´ç”¨ãƒ†ãƒ¼ãƒ–ãƒ«
 		var_tbl = Array.new
 		while n < conditionList.length do
 			condition = conditionList[n].split(/,/)
@@ -184,12 +184,12 @@ class OperationLog < ActiveRecord::Base
 			when /getModuleCount/
 			when /getTestPoint/
 				cur_point = TestLog.getSumPoint(self[:user_id],self[:ent_seq_id],condition[1])
-				# •Ï”–¼‚ğæ“¾
-				# ‹K–ñ‚É‡‚í‚È‚¢•Ï”–¼‚Í–³‹ ex.) 10Point(æ“ª‚ª”’l),point(æ“ª‚ª¬•¶š)
-				# •Ï”‚Ì“à—e‚ªã‘‚«‚³‚ê‚Ä‚½‚ç‚Ç‚¤‚µ‚æ‚¤@•ú’uHã‘‚«H‚»‚±‚Åfalse‚ğ•Ô‚·H
+				# å¤‰æ•°åã‚’å–å¾—
+				# è¦ç´„ã«åˆã‚ãªã„å¤‰æ•°åã¯ç„¡è¦– ex.) 10Point(å…ˆé ­ãŒæ•°å€¤),point(å…ˆé ­ãŒå°æ–‡å­—)
+				# å¤‰æ•°ã®å†…å®¹ãŒä¸Šæ›¸ãã•ã‚Œã¦ãŸã‚‰ã©ã†ã—ã‚ˆã†ã€€æ”¾ç½®ï¼Ÿä¸Šæ›¸ãï¼Ÿãã“ã§falseã‚’è¿”ã™ï¼Ÿ
 				reg_var =~ condition[2]
 				var_name = $1
-				# •Ï”ƒe[ƒuƒ‹‚ÉŠi”[
+				# å¤‰æ•°ãƒ†ãƒ¼ãƒ–ãƒ«ã«æ ¼ç´
 				if var_name
 					var_tbl.push([var_name,cur_point.to_i])
 				end
@@ -197,21 +197,21 @@ class OperationLog < ActiveRecord::Base
 			when /getTestCount/
 			when /getCurrentLevel/
 				cur_level = LevelLog.getCurrentLevel(self[:user_id],self[:ent_seq_id])
-				# •Ï”–¼‚ğæ“¾
+				# å¤‰æ•°åã‚’å–å¾—
 				reg_var =~ condition[1]
 				var_name = $1
-				# •Ï”ƒe[ƒuƒ‹‚ÉŠi”[
+				# å¤‰æ•°ãƒ†ãƒ¼ãƒ–ãƒ«ã«æ ¼ç´
 				if var_name
 					var_tbl.push([var_name,cur_level.to_i])
 				end
 				else
-					# ğŒ®‚Ì•]‰¿
-					# ƒtƒ‰ƒOg‚í‚È‚­‚Ä—Ç‚¢•û–@@’N‚©‚¨‚¹[‚Ä
+					# æ¡ä»¶å¼ã®è©•ä¾¡
+					# ãƒ•ãƒ©ã‚°ä½¿ã‚ãªãã¦è‰¯ã„æ–¹æ³•ã€€èª°ã‹ãŠã›ãƒ¼ã¦
 					if (reg =~ condition[0])
-						var_name = $1 # •Ï”–¼
-						symbol = $2 # ®
-						value1 = $3.to_i # ’l
-						value_left_flag = false # ğŒ®‚Ì’l‚ª¶•Ó‚É‚ ‚é‚©”Û‚©@ƒtƒ‰ƒO
+						var_name = $1 # å¤‰æ•°å
+						symbol = $2 # å¼
+						value1 = $3.to_i # å€¤
+						value_left_flag = false # æ¡ä»¶å¼ã®å€¤ãŒå·¦è¾ºã«ã‚ã‚‹ã‹å¦ã‹ã€€ãƒ•ãƒ©ã‚°
 					elsif ( reg2 =~ condition[0])
 						var_name = $3
 						symbol = $2
@@ -219,7 +219,7 @@ class OperationLog < ActiveRecord::Base
 						value_left_flag = true
 					end
 					
-					# •Ï”‚ÉŠi”[‚³‚ê‚Ä‚¢‚é’l‚ğæ“¾
+					# å¤‰æ•°ã«æ ¼ç´ã•ã‚Œã¦ã„ã‚‹å€¤ã‚’å–å¾—
 					value2 = nil
 					var_tbl.each do |v|
 					if v[0] == var_name

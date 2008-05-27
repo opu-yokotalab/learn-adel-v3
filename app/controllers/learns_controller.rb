@@ -90,16 +90,20 @@ class LearnsController < ApplicationController
 		operation_event("next","-")
 	end
 	
+	def toc
+		operation_event("toc",params[:id])
+	end
+	
 	def show
 		@learn = Learn.find(params[:id])
 		session[:seq_id] = @learn.contents
-		nextModule
-		#redirect_to :action => 'next'
+		#nextModule
+		redirect_to :action => 'nextModule'
 	end
 	
 	def view
 		#if(session[:mod_id])
-			makeView(session[:mod_id])
+			makeView(params[:id])
 		#else
 		#	#makeView(ModuleLog.getCurrentModule(session[:user].id , SeqLog.getCurrentId(session[:user].id) ))
 		#	makeView(ModuleLog.getCurrentModule(SeqLog.getCurrentId(session[:user].id) ))
@@ -108,10 +112,80 @@ class LearnsController < ApplicationController
 	
 	def makeView(mod_id)
 		view_mod = EntModule.find(:first,:conditions=>"id = #{mod_id}")
+		if view_mod
+			@bodystr_html = ""
+			node_array = GetXTDLNodeIDs(view_mod[:module_name].to_s)
+			@bodystr_html = GetXTDLSources(node_array)
+		else
+			@bodystr_html = "<h2>å­¦ç¿’ã‚’çµ‚äº†ã—ã¾ã™.</h2>"
+		end
 		
-		@bodystr_html = ""
-		node_array = GetXTDLNodeIDs(view_mod[:module_name].to_s)
-		@bodystr_html = GetXTDLSources(node_array)
+		# ç›®æ¬¡é …ç›®æç¤ºãƒ—ãƒ­ã‚»ã‚¹
+		#seq_id = SeqLog.getCurrentId(session[:user].id)
+		seq_id = session[:seq_id]
+		if seq_id != -1
+			ent_seq = EntSeq.find(seq_id)
+			# buffList: [[mod_id , xtdl_id] , ........]
+			nextList = []
+			tocList = []
+			buffList = []
+			seq_src = ent_seq[:seq_src].gsub(/(\s|\n)/,'').split(/\./)
+			i =0
+			while i < seq_src.length
+				# tocã®ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«IDã‚’æŠ½å‡º
+				if /toc\((.+?),.*\)/ =~ seq_src[i]
+					tocList.push($1)
+				end
+				# nextã®ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«IDã‚’æŠ½å‡º
+				if /next\(\[(.+?),(.+?)\],.*\)/ =~ seq_src[i]
+					mod = [$1,$2]
+					if mod[0] != "start"
+						nextList.push(mod[0])
+					end
+					if mod[1] != "end"
+						nextList.push(mod[1])
+					end
+				end
+				i+=1
+			end
+			# é‡è¤‡è¦ç´ ã‚’å‰Šé™¤
+			nextList.uniq!
+			tocList.uniq!
+			# å‚ç…§ã—ã¦ã„ã‚‹ãƒªã‚½ãƒ¼ã‚¹ã®æœ€åˆã®titleå±æ€§ã®å€¤ã‚’æŠ½å‡º
+			nextList.each do |m|
+				# node_array [ [ resource_name , [res_id,...]], ... ]
+				node_array = GetXTDLNodeIDs(m)
+				buffList << [m , node_array[0], tocList.include?(m)]
+			end
+			#tocList: [[mod_id , title name , true|false] , ........]
+			@tocList = []
+			# ãƒªã‚½ãƒ¼ã‚¹ã‹ã‚‰ã‚¿ã‚¤ãƒˆãƒ«å±æ€§ã®å€¤ã‚’æŠœã
+			buffList.each do |buff|
+				@tocList << [buff[0] , GetElementTitle(buff[1]), buff[2]]
+			end
+		end
+	end
+	
+	def GetElementTitle(node_res_ids)
+		http = Net::HTTP.new('localhost',8080)
+		resource_name = node_res_ids[0]
+		node_id = node_res_ids[1][0]
+		# XML-DB ã‹ã‚‰æŒ‡å®šã®XTDLãƒªã‚½ãƒ¼ã‚¹ã‚’å–å¾—
+		req = Net::HTTP::Get.new("/exist/rest/db/adel_v3/xtdl_resources/#{resource_name}.xml?_query=//*[@id=%22#{node_id}%22]")
+		res = http.request(req)
+		
+		doc = REXML::Document.new res.body
+		elem = doc.elements["//*[@id='#{node_id}']"]
+		if elem == nil
+			return node_id
+		else
+			title = elem.attributes["title"]
+			if title != ""
+				return title
+			else
+				return "no title"
+			end
+		end
 	end
 	
 	def GetXTDLSources(node_id_array)
@@ -122,11 +196,11 @@ class LearnsController < ApplicationController
 		node_id_array.each do |node_res_ids|
 			resource_name = node_res_ids[0]
 			node_res_ids[1].each do |node_id|
-				# XML-DB ‚©‚çw’è‚ÌXTDLƒŠƒ\[ƒX‚ğæ“¾
+				# XML-DB ã‹ã‚‰æŒ‡å®šã®XTDLãƒªã‚½ãƒ¼ã‚¹ã‚’å–å¾—
 				req = Net::HTTP::Get.new("/exist/rest/db/adel_v3/xtdl_resources/#{resource_name}.xml?_query=//*[@id=%22#{node_id}%22]")
 				res = http.request(req)
 				
-				# DOM ‚ğ¶¬
+				# DOM ã‚’ç”Ÿæˆ
 				doc = REXML::Document.new res.body
 				doc = doc.elements["//*[@id='#{node_id}']"]
 				
@@ -139,14 +213,14 @@ class LearnsController < ApplicationController
 		return str_buff
 	end
 
-	# Ä‹A“I‚Éƒm[ƒh‚ğ’Tõ
+	# å†å¸°çš„ã«ãƒãƒ¼ãƒ‰ã‚’æ¢ç´¢
 	def XTDLNodeSearch(dom_obj)
-	# ˆÓ–¡—v‘f@”z—ñ
+	# æ„å‘³è¦ç´ ã€€é…åˆ—
 		semantic_elem_array = ["explanation","example","illustration","definition","program","algorithm","proof","simulation"]
 
 		str_buff = ""
-		flag = false # ”»’èƒtƒ‰ƒO
-		if dom_obj.name["section"] ## section —v‘f‚È‚ç‚Î
+		flag = false # åˆ¤å®šãƒ•ãƒ©ã‚°
+		if dom_obj.name["section"] ## section è¦ç´ ãªã‚‰ã°
 			if dom_obj.attributes["title"] != ""
 				str_buff += "<h2>" + dom_obj.attributes["title"].toutf8 + "</h2>"
 			else
@@ -156,11 +230,11 @@ class LearnsController < ApplicationController
 				str_buff += XTDLNodeSearch(elem)
 			end
 =begin
-    elsif dom_obj.name["examination"] then ## ƒeƒXƒg‹Lq—v‘f‚È‚ç‚Î
-      # ƒeƒXƒgƒtƒ‰ƒO‚ğON
+    elsif dom_obj.name["examination"] then ## ãƒ†ã‚¹ãƒˆè¨˜è¿°è¦ç´ ãªã‚‰ã°
+      # ãƒ†ã‚¹ãƒˆãƒ•ãƒ©ã‚°ã‚’ON
       $test_flag = true
       
-      # ƒeƒXƒg‹Lq—v‘fˆÈ‰º‚ğ‚·‚×‚ÄƒeƒXƒg‹@\‚ÉPost
+      # ãƒ†ã‚¹ãƒˆè¨˜è¿°è¦ç´ ä»¥ä¸‹ã‚’ã™ã¹ã¦ãƒ†ã‚¹ãƒˆæ©Ÿæ§‹ã«Post
       http = Net::HTTP.new('localhost' , 80)
       req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
       res = http.request(req,"&mode=set&user_id=#{session[:user].id}&src=" + dom_obj.to_s)
@@ -168,15 +242,15 @@ class LearnsController < ApplicationController
 
       testid = dom_obj.attributes["id"]
 
-      str_buff += "<br /><br /><form method=\"post\" action=\"/adel_v2/public/learning/examCommit?testname=#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"ƒeƒXƒg‚Ì‡”Û”»’è\" /></div></form>"
+      str_buff += "<br /><br /><form method=\"post\" action=\"/adel_v2/public/learning/examCommit?testname=#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"ãƒ†ã‚¹ãƒˆã®åˆå¦åˆ¤å®š\" /></div></form>"
 =end
-		else ## ˆÓ–¡—v‘f@‚È‚ç‚Î
+		else ## æ„å‘³è¦ç´ ã€€ãªã‚‰ã°
 			if dom_obj.attributes["title"] != ""
 				str_buff += "<h3>" + dom_obj.attributes["title"].toutf8 + "</h3>"
 			else
 				str_buff += "<br /><br />"
 			end
-			# q‚ÍHTMLHˆÓ–¡—v‘fH
+			# å­ã¯HTMLï¼Ÿæ„å‘³è¦ç´ ï¼Ÿ
 			semantic_elem_array.each do |semantic_elem|
 				if dom_obj.elements["./#{semantic_elem}"]
 					flag = true
@@ -184,12 +258,12 @@ class LearnsController < ApplicationController
 			end
 			
 			if flag
-				# ˆÓ–¡—v‘f‚Ìê‡
+				# æ„å‘³è¦ç´ ã®å ´åˆ
 				dom_obj.each_element do |elem|
 					str += XTDLNodeSearch(elem)
 				end
 			else
-				# HTML‚Ìê‡
+				# HTMLã®å ´åˆ
 				dom_obj.each do |elem|
 					str_buff += elem.to_s.toutf8
 				end
@@ -200,19 +274,19 @@ class LearnsController < ApplicationController
 	end
 	
 	def GetXTDLNodeIDs(ent_module_name)
-		# ŠwKÒDB‚©‚ç‹³Şƒ‚ƒWƒ…[ƒ‹@‚ğæ“¾
+		# å­¦ç¿’è€…DBã‹ã‚‰æ•™æãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã€€ã‚’å–å¾—
 		ent_mod = EntModule.find(:first,:conditions=>"module_name = '#{ent_module_name}'")
-		#ƒ‚ƒWƒ…[ƒ‹‚©‚ç‚Ìrefs’Šo
+		#ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã‹ã‚‰ã®refsæŠ½å‡º
 		doc = REXML::Document.new ent_mod[:module_src]
 		doc = doc.elements["/module"]
 		# node_array [ [ resource_name , [res_id,...]], ... ]
 		node_array = []
-		# Œ»İŠwK’†‚ÌŠwKƒV[ƒPƒ“ƒVƒ“ƒOID‚ğæ“¾
-		# Œ»İ‚ÌŠwKÒƒŒƒxƒ‹‚ğæ“¾
+		# ç¾åœ¨å­¦ç¿’ä¸­ã®å­¦ç¿’ã‚·ãƒ¼ã‚±ãƒ³ã‚·ãƒ³ã‚°IDã‚’å–å¾—
+		# ç¾åœ¨ã®å­¦ç¿’è€…ãƒ¬ãƒ™ãƒ«ã‚’å–å¾—
 		#cur_level = LevelLog.getCurrentLevel(session[:user].id , SeqLog.getCurrentId(session[:user].id) )
-		cur_level = 1	# ‚Æ‚è‚ ‚¦‚¸1‚ÅŒÅ’è
+		cur_level = 1	# ã¨ã‚Šã‚ãˆãš1ã§å›ºå®š
 		
-		# ’ñ¦‚·‚×‚«ID‚ğæ“¾
+		# æç¤ºã™ã¹ãIDã‚’å–å¾—
 		doc.each_element { |elem_block|
 			elem_block.each_element { |elem_node|
 				level_array = elem_node.attributes["level"].split(/,/)
@@ -230,11 +304,11 @@ class LearnsController < ApplicationController
 	#def operation_event(ope_code,e_arg)
 	def operation_event(ope_code,e_arg)
 =begin
-		#ƒƒOƒCƒ“ƒ†[ƒU‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚ğæ“¾
+		#ãƒ­ã‚°ã‚¤ãƒ³ãƒ¦ãƒ¼ã‚¶ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’å–å¾—
 		user = User.find(session[:user].id)
 		cur_seq_id = SeqLog.getCurrentId(user[:id])
 		
-		#‘€ìƒR[ƒh‘}“ü‘O‚ÉŠÔ‚ğ‹L˜^
+		#æ“ä½œã‚³ãƒ¼ãƒ‰æŒ¿å…¥å‰ã«æ™‚é–“ã‚’è¨˜éŒ²
 		time_log = RuleSearchTimeLog.new
 		time_log[:user_id] = user[:id]
 		time_log[:time_name] = 'before_perl'
@@ -244,30 +318,30 @@ class LearnsController < ApplicationController
 		cur_seq_id = session[:seq_id]
 		
 		ope_log = OperationLog.new
-		# ‘€ìƒR[ƒh ƒƒO‚É‹L˜^)
+		# æ“ä½œã‚³ãƒ¼ãƒ‰ ãƒ­ã‚°ã«è¨˜éŒ²)
 		ope_log[:operation_code] = ope_code
-		# ‘€ì¯•ÊƒR[ƒh@İ’è
+		# æ“ä½œè­˜åˆ¥ã‚³ãƒ¼ãƒ‰ã€€è¨­å®š
 		ope_log[:dis_code] = Time.now.to_i
-		# Eventˆø”@İ’è
+		# Eventå¼•æ•°ã€€è¨­å®š
 		ope_log[:event_arg] = e_arg
-		# ƒe[ƒuƒ‹ŠÔ‚ÌŠÖ˜A•t‚¯
+		# ãƒ†ãƒ¼ãƒ–ãƒ«é–“ã®é–¢é€£ä»˜ã‘
 		ope_log[:ent_seq_id] = cur_seq_id
 		#ope_log[:user_id] = user[:id]
 		
 		OperationLog.transaction do
-			#ECAƒ‹[ƒ‹‚ÌÀsƒƒO‚ğæ‚éCƒ‹[ƒ‹‚ğ•]‰¿
+			#ECAãƒ«ãƒ¼ãƒ«ã®å®Ÿè¡Œãƒ­ã‚°ã‚’å–ã‚‹ï¼Œãƒ«ãƒ¼ãƒ«ã‚’è©•ä¾¡
 			ope_log.save!
 			
-			# Action Às
+			# Action å®Ÿè¡Œ
 			if action_array_obj = getActionCode(ope_log)
 				#execAction(user,action_array_obj)
 				execAction(action_array_obj)
 			else
-				flash[:notice]="ƒAƒNƒVƒ‡ƒ“ƒR[ƒh‚Ìæ“¾‚É¸”s‚µ‚Ü‚µ‚½B"
+				flash[:notice]="ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚³ãƒ¼ãƒ‰ã®å–å¾—ã«å¤±æ•—ã—ã¾ã—ãŸã€‚"
 			end
 		end
 =begin
-		#ActionŒˆ’èŒã‚ÉŠÔ‚ğ‹L˜^
+		#Actionæ±ºå®šå¾Œã«æ™‚é–“ã‚’è¨˜éŒ²
 		time_log = RuleSearchTimeLog.new
 		time_log[:user_id] = user[:id]
 		time_log[:time_name] = 'after_perl'
@@ -275,14 +349,14 @@ class LearnsController < ApplicationController
 		time_log.save
 =end
 		#redirect_to :action=>'view', :dis=>ope_log[:dis_code]
-		view
+		redirect_to :action=>'view', :id=>session[:mod_id]
 	end
 	
 	def getActionCode(table_obj)
 		#where = "user_id = :user_id AND dis_code = :dis_code"
 		where = "dis_code = :dis_code"
 		value = {:dis_code => "#{table_obj.dis_code}"}
-		# ƒAƒNƒVƒ‡ƒ“ƒR[ƒhæ“¾¸”s -> Å‘å5•bŠÔ‘Ò‚Â
+		# ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚³ãƒ¼ãƒ‰å–å¾—å¤±æ•— -> æœ€å¤§5ç§’é–“å¾…ã¤
 		for i in 1..10
 			sleep 0.5
 			if action_array_obj = ActionLog.find(:all,:conditions=>[where,value],:order=>"id")
@@ -296,12 +370,12 @@ class LearnsController < ApplicationController
 	end
 	
 	def execAction(action_array_obj)
-		#ƒAƒNƒVƒ‡ƒ“Às
+		#ã‚¢ã‚¯ã‚·ãƒ§ãƒ³å®Ÿè¡Œ
 		action_array_obj.each do |action_obj|
 			case action_obj[:action_code]
-			when /view/           # ‹³Şƒ‚ƒWƒ…[ƒ‹’ñ¦
+			when /view/           # æ•™æãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«æç¤º
 				
-				# ƒƒO‚ğ’Ç‰Á
+				# ãƒ­ã‚°ã‚’è¿½åŠ 
 				mod_log = ModuleLog.new
 				
 				if /end/ =~ action_obj[:action_value]
@@ -313,21 +387,21 @@ class LearnsController < ApplicationController
 					session[:mod_id] = mod_log[:ent_module_id]
 				end
 				
-				# ƒV[ƒPƒ“ƒVƒ“ƒO‚ÆŠwKÒ‚ÌID‚ğŠÖ˜A•t‚¯‚é
+				# ã‚·ãƒ¼ã‚±ãƒ³ã‚·ãƒ³ã‚°ã¨å­¦ç¿’è€…ã®IDã‚’é–¢é€£ä»˜ã‘ã‚‹
 				#cur_seq = SeqLog.getCurrentId(user[:id])
 				#mod_log[:ent_seq_id] = cur_seq
 				mod_log[:ent_seq_id] = session[:seq_id]
 				#mod_log[:user_id] = user[:id]
-				# •Û‘¶
+				# ä¿å­˜
 				mod_log.save!
 				
-				# ‚»‚Ì‚ ‚Æ‚ÌAction‚ÍƒXƒLƒbƒv‚·‚é
+				# ãã®ã‚ã¨ã®Actionã¯ã‚¹ã‚­ãƒƒãƒ—ã™ã‚‹
 				return
 =begin
-      when /retryall/       # ‘S‘Ì‚ğÄŠwK
-        # SEQ‚Ìæ“ªID‚ğæ“¾
-        # ModuleLog ‚É’Ç‰Á
-      when /exit/           # ŠwK‚ÌI—¹
+      when /retryall/       # å…¨ä½“ã‚’å†å­¦ç¿’
+        # SEQã®å…ˆé ­IDã‚’å–å¾—
+        # ModuleLog ã«è¿½åŠ 
+      when /exit/           # å­¦ç¿’ã®çµ‚äº†
         mod_log = ModuleLog.new
         mod_log[:ent_module_id]=-1
         mod_log[:ent_seq_id] =cur_seq
@@ -335,19 +409,19 @@ class LearnsController < ApplicationController
         mod_log.save!
         
         return        
-      when /changeLv/       # ŠwKÒƒŒƒxƒ‹‚Ì•ÏX
+      when /changeLv/       # å­¦ç¿’è€…ãƒ¬ãƒ™ãƒ«ã®å¤‰æ›´
         lev_log = LevelLog.new
         cur_seq = SeqLog.getCurrentId(user[:id])
 
-        # ƒV[ƒPƒ“ƒVƒ“ƒO‚ÆŠwKÒ‚ÌID‚ğŠÖ˜A•t‚¯‚é
+        # ã‚·ãƒ¼ã‚±ãƒ³ã‚·ãƒ³ã‚°ã¨å­¦ç¿’è€…ã®IDã‚’é–¢é€£ä»˜ã‘ã‚‹
         lev_log[:level] = action_obj[:action_value]
         lev_log[:ent_seq_id] = cur_seq
         lev_log[:user_id] = user[:id]
-        #•Û‘¶
+        #ä¿å­˜
         lev_log.save!
       when /assist/
 =end
-			when /false/          # Às‚·‚éƒAƒNƒVƒ‡ƒ“–³‚µ
+			when /false/          # å®Ÿè¡Œã™ã‚‹ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ç„¡ã—
 			end
 		end
 	end

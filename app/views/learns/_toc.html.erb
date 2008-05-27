@@ -1,0 +1,16 @@
+<h4 style="margin:20px;">Table of Contents</h4>
+
+<ul style="margin-left:-10px;" >
+	<% i=1 %>
+	<% @tocList.each do |toc| %>
+	<li>
+		<% if toc[2] %>
+		<%= link_to "#{i}:#{toc[1]}", :controller=>'learns',
+		:action=>'toc', :id=>"#{toc[0]}" %>
+		<% else %>
+		<%= "#{i}:#{toc[1]}" %>
+		<% end %>
+	</li>
+	<% i+=1 %>
+	<% end %>
+</ul>
