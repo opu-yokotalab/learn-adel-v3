@@ -98,12 +98,15 @@ class LearnsController < ApplicationController
 		@learn = Learn.find(params[:id])
 		session[:seq_id] = @learn.contents
 		#nextModule
-		redirect_to :action => 'nextModule'
+		if(!session[:mod_id])
+			redirect_to :action => 'nextModule'
+		else
+			redirect_to :action => 'view', :id => session[:mod_id]
+		end
 	end
 	
 	def view
-		#if(session[:mod_id])
-			makeView(params[:id])
+		makeView(params[:id])
 		#else
 		#	#makeView(ModuleLog.getCurrentModule(session[:user].id , SeqLog.getCurrentId(session[:user].id) ))
 		#	makeView(ModuleLog.getCurrentModule(SeqLog.getCurrentId(session[:user].id) ))
@@ -192,7 +195,7 @@ class LearnsController < ApplicationController
 		str_buff = ""
 		
 		http = Net::HTTP.new('localhost',8080)
-
+		
 		node_id_array.each do |node_res_ids|
 			resource_name = node_res_ids[0]
 			node_res_ids[1].each do |node_id|
