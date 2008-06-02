@@ -4,6 +4,7 @@ require 'net/http'
 class LearnsController < ApplicationController
   # GET /learns
   # GET /learns.xml
+
   def index
     @learns = Learn.find(:all)
 
@@ -304,7 +305,6 @@ class LearnsController < ApplicationController
 		return node_array
 	end
 	
-	#def operation_event(ope_code,e_arg)
 	def operation_event(ope_code,e_arg)
 =begin
 		#ログインユーザのインスタンスを取得
