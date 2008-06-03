@@ -26,8 +26,7 @@ class OperationLog < ActiveRecord::Base
 		case ope_code
 		when /next/    # 次の教材を要求するイベントの処理
 			# 現在表示している教材モジュールを取得
-			#mod_id = ModuleLog.getCurrentModule(self[:user_id] , self[:ent_seq_id])
-			mod_id = ModuleLog.getCurrentModule(self[:ent_seq_id])
+			mod_id = ModuleLog.getCurrentModule(self[:user_id] , self[:ent_seq_id])
 			if mod_id != -1
 				ent_mod = EntModule.find(mod_id)
 				mod_name = ent_mod[:module_name]
