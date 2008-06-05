@@ -2,6 +2,7 @@ require 'rexml/document'
 require 'net/http'
 
 class LearnsController < ApplicationController
+=begin
   # GET /learns
   # GET /learns.xml
 
@@ -86,7 +87,7 @@ class LearnsController < ApplicationController
       format.xml  { head :ok }
     end
   end
-  
+=end
 	def nextModule
 		operation_event("next","-")
 	end
@@ -96,16 +97,6 @@ class LearnsController < ApplicationController
 	end
 	
 	def show
-=begin
-		@learn = Learn.find(params[:id])
-		session[:seq_id] = @learn.contents
-		#nextModule
-		if(!session[:mod_id])
-			redirect_to :action => 'nextModule'
-		else
-			redirect_to :action => 'view', :id => session[:mod_id]
-		end
-=end
 		user = User.find(session[:user])
 		#学習シーケンシングログを更新：Update SEQID
 		seqlog = SeqLog.new
@@ -118,25 +109,23 @@ class LearnsController < ApplicationController
 		end
 		
 		#next redirect(Query To Rule Engine)
-		#cur_mod_id = ModuleLog.getCurrentModule(session[:user].id , SeqLog.getCurrentId(session[:user].id) )
+		cur_mod_id = ModuleLog.getCurrentModule(session[:user], SeqLog.getCurrentId(session[:user]))
 		
-		if(!session[:mod_id])
+		if(cur_mod_id == -1)
 			redirect_to :action => 'nextModule'
 		else
-			redirect_to :action => 'view', :id => session[:mod_id]
+			#redirect_to :action => 'view', :dis=>'-1'
+			redirect_to :action => 'view'
 		end
 	end
 	
 	def view
-		makeView(params[:id])
-		#else
-		#	#makeView(ModuleLog.getCurrentModule(session[:user].id , SeqLog.getCurrentId(session[:user].id) ))
-		#	makeView(ModuleLog.getCurrentModule(SeqLog.getCurrentId(session[:user].id) ))
-		#end
+		@user = User.find(:first, :conditions=>["id=#{session[:user]}"])
+		makeView(ModuleLog.getCurrentModule(session[:user], SeqLog.getCurrentId(session[:user])))
 	end
 	
 	def makeView(mod_id)
-		view_mod = EntModule.find(:first,:conditions=>"id = #{mod_id}")
+		view_mod = EntModule.find(:first, :conditions=>"id = #{mod_id}")
 		if view_mod
 			@bodystr_html = ""
 			node_array = GetXTDLNodeIDs(view_mod[:module_name].to_s)
@@ -241,7 +230,7 @@ class LearnsController < ApplicationController
 	def XTDLNodeSearch(dom_obj)
 	# 意味要素　配列
 		semantic_elem_array = ["explanation","example","illustration","definition","program","algorithm","proof","simulation"]
-
+		
 		str_buff = ""
 		flag = false # 判定フラグ
 		if dom_obj.name["section"] ## section 要素ならば
@@ -254,19 +243,19 @@ class LearnsController < ApplicationController
 				str_buff += XTDLNodeSearch(elem)
 			end
 =begin
-    elsif dom_obj.name["examination"] then ## テスト記述要素ならば
-      # テストフラグをON
-      $test_flag = true
-      
-      # テスト記述要素以下をすべてテスト機構にPost
-      http = Net::HTTP.new('localhost' , 80)
-      req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
-      res = http.request(req,"&mode=set&user_id=#{session[:user].id}&src=" + dom_obj.to_s)
-      str_buff += res.body
-
-      testid = dom_obj.attributes["id"]
-
-      str_buff += "<br /><br /><form method=\"post\" action=\"/adel_v2/public/learning/examCommit?testname=#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"テストの合否判定\" /></div></form>"
+		elsif dom_obj.name["examination"] then ## テスト記述要素ならば
+			# テストフラグをON
+			$test_flag = true
+			
+			# テスト記述要素以下をすべてテスト機構にPost
+			http = Net::HTTP.new('localhost', 80)
+			req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
+			res = http.request(req,"&mode=set&user_id=#{session[:user].id}&src=" + dom_obj.to_s)
+			str_buff += res.body
+			
+			testid = dom_obj.attributes["id"]
+			
+			str_buff += "<br /><br /><form method=\"POST\" action=\"examCommit?testname=#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"テストの合否判定\" /></div></form>"
 =end
 		else ## 意味要素　ならば
 			if dom_obj.attributes["title"] != ""
@@ -329,7 +318,7 @@ class LearnsController < ApplicationController
 		#ログインユーザのインスタンスを取得
 		user = User.find(session[:user])
 		cur_seq_id = SeqLog.getCurrentId(user[:id])
-=begin		
+=begin
 		#操作コード挿入前に時間を記録
 		time_log = RuleSearchTimeLog.new
 		time_log[:user_id] = user[:id]
@@ -369,7 +358,7 @@ class LearnsController < ApplicationController
 		time_log.save
 =end
 		#redirect_to :action=>'view', :dis=>ope_log[:dis_code]
-		redirect_to :action=>'view', :id=>session[:mod_id]
+		redirect_to :action=>'view'
 	end
 	
 	def getActionCode(table_obj)
@@ -399,11 +388,9 @@ class LearnsController < ApplicationController
 				
 				if /end/ =~ action_obj[:action_value]
 					mod_log[:ent_module_id] = -1
-					session[:mod_id] = mod_log[:ent_module_id]
 				else
 					ent_mod = EntModule.find(:first,:conditions=>"module_name = '#{action_obj[:action_value]}'")
 					mod_log[:ent_module_id] = ent_mod[:id]
-					session[:mod_id] = mod_log[:ent_module_id]
 				end
 				
 				# シーケンシングと学習者のIDを関連付ける

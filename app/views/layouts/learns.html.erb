@@ -20,7 +20,10 @@
 
 <p style="color: green"><%= flash[:notice] %></p>
 
-<% if @tocList %>
+<div class="menu_ope">
+<%= render :partial=>'menu_ope'%>
+</div>
+
 <div id="toc" class="table_of_contents">
 <%= render :partial=>'toc' %>
 </div>
@@ -28,9 +31,6 @@
 <div class="content">
 <%= yield %>
 </div>
-<% else %>
-<%= yield %>
-<% end %>
 
 </body>
 </html>

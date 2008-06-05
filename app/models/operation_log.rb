@@ -10,16 +10,16 @@ class OperationLog < ActiveRecord::Base
 		seq_src = ent_seq[:seq_src]
 		# 空白と改行の削除　→　.で分割
 		seq_src = seq_src.gsub(/(\s|\n)/,'').split(/\./)
-
+		
 		# EcaRuleMatrixの作成
 		seq_mat = makeEcaRuleMatrix(seq_src)
-
+		
 		# seq_mat データ構造
 		# next or changeLv [Event,[EventArg1,EventArg2],[ActionList],[ConditionList]]
 		# toc [Event,EventArg,[ActionList],[ConditionList]]
 		# ActionList [[ActionCode,ActionValue],... ]
 		# ConditionList [[Condition,Arg1,Arg2],... ]
-
+		
 		# ルールを評価
 		# イベント毎に処理を分岐
 		#### もう少しきれいに書きたい・・・
@@ -106,24 +106,24 @@ class OperationLog < ActiveRecord::Base
         actionList.push("false,-")
       end
 =end
-
+		
 		end
-	
-	# ActionLogテーブルに格納　トランザクションブロック
-	ActionLog.transaction do
-		i=0
-		while i < actionList.length do
-			code_value = actionList[i].split(/,/)
-			action = ActionLog.new
-			action[:user_id] = self[:user_id]
-			action[:ent_seq_id] = self[:ent_seq_id]
-			action[:action_code] = code_value[0]
-			action[:action_value] = code_value[1]
-			action[:dis_code] = self[:dis_code]
-			action.save!
-			i+=1
+		
+		# ActionLogテーブルに格納　トランザクションブロック
+		ActionLog.transaction do
+			i=0
+			while i < actionList.length do
+				code_value = actionList[i].split(/,/)
+				action = ActionLog.new
+				action[:user_id] = self[:user_id]
+				action[:ent_seq_id] = self[:ent_seq_id]
+				action[:action_code] = code_value[0]
+				action[:action_value] = code_value[1]
+				action[:dis_code] = self[:dis_code]
+				action.save!
+				i+=1
+			end
 		end
-	end
 	end
 	
 	# ルールリスト作成  
@@ -165,7 +165,7 @@ class OperationLog < ActiveRecord::Base
 		
 		return seq_mat
 	end
-
+	
 	def conditionMatching(conditionList)
 		n=0
 		# 変数名　チェック用　正規表現
@@ -266,10 +266,9 @@ class OperationLog < ActiveRecord::Base
 			end
 		n+=1
 		end
-
+	
 	return true
 	end
-
-
+	
 	validates_inclusion_of :operation_code, :in=>%w(next toc changeLv)
 end
