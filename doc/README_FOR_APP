@@ -1,10 +1,14 @@
-�C���X�g�[���菇
-1.svn���g���đS���Ƃ��Ă���
-2.exist�𓱓��iJDK���Ȃ���Γ���Ă������Ɓj
-3.exist�ɋ��ނ� /adel_v3/xtdl_resources/�Ȃ�Ƃ�.xml �̌`�Œǉ�
-  �ialpha��̂���R�s�[�Ƃ��j
-4.�A�v���P�[�V�����̃f�B���N�g�����
+インストール手順
+1.svnを使って全部とってくる
+2.existを導入（JDKがなければ入れておくこと）
+3.existに教材を /adel_v3/xtdl_resources/なんとか.xml の形で追加
+  （alpha上のやつをコピーとか）
+4.アプリケーションのディレクトリ上で
   % rake db:migrate
-5.ent_seq��ent_module��K���ɒǉ�
-  �ialpha��̂���G�N�X�|�[�g���ăC���|�[�g�Ƃ��j
-6.���Ԃ񓮂��͂�
+5.ent_seqとent_moduleを適当に追加
+  （alpha上のやつをエクスポートしてインポートとか）
+6.たぶん動くはず
+
+メモ
+使ったプラグイン
+acts_as_authenticated：ログインシステム

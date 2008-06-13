@@ -96,6 +96,10 @@ class LearnsController < ApplicationController
 		operation_event("toc",params[:id])
 	end
 	
+	def changeLv
+		operation_event("changeLv",params[:id])
+	end
+	
 	def show
 		user = User.find(session[:user])
 		#学習シーケンシングログを更新：Update SEQID
@@ -296,8 +300,7 @@ class LearnsController < ApplicationController
 		node_array = []
 		# 現在学習中の学習シーケンシングIDを取得
 		# 現在の学習者レベルを取得
-		#cur_level = LevelLog.getCurrentLevel(session[:user].id , SeqLog.getCurrentId(session[:user].id) )
-		cur_level = 1	# とりあえず1で固定
+		cur_level = LevelLog.getCurrentLevel(session[:user], SeqLog.getCurrentId(session[:user]) )
 		
 		# 提示すべきIDを取得
 		doc.each_element { |elem_block|
@@ -402,33 +405,30 @@ class LearnsController < ApplicationController
 				
 				# そのあとのActionはスキップする
 				return
-=begin
-      when /retryall/       # 全体を再学習
-        # SEQの先頭IDを取得
-        # ModuleLog に追加
-      when /exit/           # 学習の終了
-        mod_log = ModuleLog.new
-        mod_log[:ent_module_id]=-1
-        mod_log[:ent_seq_id] =cur_seq
-        mod_log[:user_id] = user[:id]
-        mod_log.save!
-        
-        return        
-      when /changeLv/       # 学習者レベルの変更
-        lev_log = LevelLog.new
-        cur_seq = SeqLog.getCurrentId(user[:id])
-
-        # シーケンシングと学習者のIDを関連付ける
-        lev_log[:level] = action_obj[:action_value]
-        lev_log[:ent_seq_id] = cur_seq
-        lev_log[:user_id] = user[:id]
-        #保存
-        lev_log.save!
-      when /assist/
-=end
+			when /retryall/       # 全体を再学習
+				# SEQの先頭IDを取得
+				# ModuleLog に追加
+			when /exit/           # 学習の終了
+				mod_log = ModuleLog.new
+				mod_log[:ent_module_id]=-1
+				mod_log[:ent_seq_id] =cur_seq
+				mod_log[:user_id] = user[:id]
+				mod_log.save!
+				
+				return
+			when /changeLv/       # 学習者レベルの変更
+				lev_log = LevelLog.new
+				cur_seq = SeqLog.getCurrentId(user[:id])
+				
+				# シーケンシングと学習者のIDを関連付ける
+				lev_log[:level] = action_obj[:action_value]
+				lev_log[:ent_seq_id] = cur_seq
+				lev_log[:user_id] = user[:id]
+				#保存
+				lev_log.save!
+			when /assist/
 			when /false/          # 実行するアクション無し
 			end
 		end
 	end
-
 end

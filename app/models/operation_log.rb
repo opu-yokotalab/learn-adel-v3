@@ -81,31 +81,28 @@ class OperationLog < ActiveRecord::Base
 			else
 				actionList.push("false,-")
 			end
-=begin
-
-    when /changeLv/      # レベル変更の要求のイベントの処理
-      # conditionのマッチング
-      n=0
-      while n < seq_mat.length do
-        if seq_mat[n][0] =~ /#{ope_code}/
-            if seq_mat[n][1][0] =~ /#{self[:event_arg]}/
-                if conditionMatching(seq_mat[n][3])
-                  break
-                end
-            end
-        end
-        n+=1
-      end
-
-      actionList = Array.new
-      # actionの決定
-      if n < seq_mat.length
-        actionList = seq_mat[n][2]
-        actionList.push("changeLv,#{seq_mat[n][1][1]}")
-      else
-        actionList.push("false,-")
-      end
-=end
+		when /changeLv/      # レベル変更の要求のイベントの処理
+			# conditionのマッチング
+			n=0
+			while n < seq_mat.length do
+				if seq_mat[n][0] =~ /#{ope_code}/
+					if seq_mat[n][1][0] =~ /#{self[:event_arg]}/
+						if conditionMatching(seq_mat[n][3])
+							break
+						end
+					end
+				end
+				n+=1
+			end
+			
+			actionList = Array.new
+			# actionの決定
+			if n < seq_mat.length
+				actionList = seq_mat[n][2]
+				actionList.push("changeLv,#{seq_mat[n][1][1]}")
+			else
+				actionList.push("false,-")
+			end
 		
 		end
 		
