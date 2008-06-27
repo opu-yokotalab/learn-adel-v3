@@ -36,6 +36,7 @@ ActionController::Routing::Routes.draw do |map|
   map.connect 'next/:id', :controller => 'learns', :action => 'nextModule'
   map.connect 'toc/:id', :controller => 'learns', :action => 'toc'
   map.connect 'changeLv/:id', :controller => 'learns', :action => 'changeLv'
+  map.connect 'examCommit/:id', :controller => 'learns', :action => 'examCommit'
   
   map.connect ':controller/:action/:id'
   map.connect ':controller/:action/:id.:format'

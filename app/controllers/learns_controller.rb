@@ -118,13 +118,84 @@ class LearnsController < ApplicationController
 		if(cur_mod_id == -1)
 			redirect_to :action => 'nextModule'
 		else
-			#redirect_to :action => 'view', :dis=>'-1'
-			redirect_to :action => 'view'
+			redirect_to :action => 'view', :id=>'-1'
 		end
 	end
 	
+	def examCommit	#まだ実証してない
+		# test_key_hashをテスト機構に問合せ
+		http = Net::HTTP.new('localhost',80)
+		req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
+		res = http.request(req,"&mode=get_testkey&user_id=#{session[:user]}")
+		test_key_hash = res.body
+		
+		# テスト結果を取得
+		http = Net::HTTP.new('localhost' , 80)
+		req = Net::HTTP::Get.new("/~learn/cgi-bin/prot_test/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
+		res = http.request(req)
+		res_buff = res.body.split(/,/)
+		
+		#result [["q_id","得点"], ... ]
+		result = []
+		res_buff.each do |t|
+			result.push t.split(/:/)
+		end
+		
+		#テストIDを取得
+		test_name = params[:id]
+		testID = EntTest.find(:first,:conditions=>"test_name = '#{test_name}'")
+		#現在のシーケンシングIDとモジュールIDを取得
+		seqID = SeqLog.getCurrentId(session[:user])
+		moduleID = ModuleLog.getCurrentModule(session[:user], seqID)
+		
+		sum = 0  # 合計点
+		result.each do |q|
+			#問題IDを取得
+			qID = EntQuestion.find(:first,:conditions=>"question_name = '#{q[0]}'")
+			qlog = QuestionLog.new
+			qlog[:user_id] = session[:user]
+			qlog[:ent_seq_id] = seqID
+			qlog[:ent_module_id] = moduleID
+			qlog[:ent_test_id] = testID[:id]
+			qlog[:ent_question_id] = qID[:id]
+			qlog[:point] = q[1].to_i
+			#問題グループ毎のログを保存
+			QuestionLog.transaction do
+				qlog.save!
+			end
+			
+			# テスト結果の合計点を計算
+			sum += q[1].to_i
+		end
+		
+		# テスト結果の合計点をログに保存
+		testlog = TestLog.new
+		testlog[:user_id] = session[:user]
+		testlog[:ent_seq_id] = seqID
+		testlog[:ent_module_id] = moduleID
+		testlog[:ent_test_id] = testID[:id]
+		testlog[:sum_point] = sum
+		
+		# ログ作成
+		TestLog.transaction do
+			testlog.save!
+		end
+		
+		# nextリダイレクト
+		redirect_to :action => 'nextModule'
+	end
+	
 	def view
-		@user = User.find(:first, :conditions=>["id=#{session[:user]}"])
+		@user = User.find(:first, :conditions=>"id = #{session[:user]}")
+		dis_code = params[:id]
+
+		# 提示メッセージの検索,リストに格納
+		@msg = Array.new
+		msg_action = ActionLog.find(:all,:conditions=>"action_code = 'msg' AND dis_code = #{dis_code}",:order=>"id")
+		msg_action.each do |m|
+			@msg.push(m[:action_value].gsub(/\"/,'').toutf8)
+		end
+		
 		makeView(ModuleLog.getCurrentModule(session[:user], SeqLog.getCurrentId(session[:user])))
 	end
 	
@@ -259,7 +330,7 @@ class LearnsController < ApplicationController
 			
 			testid = dom_obj.attributes["id"]
 			
-			str_buff += "<br /><br /><form method=\"POST\" action=\"examCommit?testname=#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"テストの合否判定\" /></div></form>"
+			str_buff += "<br /><br /><form method=\"POST\" action=\"examCommit/#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"テストの合否判定\" /></div></form>"
 =end
 		else ## 意味要素　ならば
 			if dom_obj.attributes["title"] != ""
@@ -360,8 +431,7 @@ class LearnsController < ApplicationController
 		time_log[:time_value] = Time.now
 		time_log.save
 =end
-		#redirect_to :action=>'view', :dis=>ope_log[:dis_code]
-		redirect_to :action=>'view'
+		redirect_to :action=>'view', :id=>ope_log[:dis_code]
 	end
 	
 	def getActionCode(table_obj)

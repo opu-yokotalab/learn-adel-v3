@@ -1,0 +1,8 @@
+<% i=0 %>
+<% @msg.each do |m|%>
+<div class="message" id="msg<%= i %>" style="width:80%">
+ <%= button_to_function '閉じる',"Element.remove('msg#{i}')" %>
+ <dl><dt><span style="font-weight:bold;font-size:13pt;"><%= m %></span></dt></dl>
+</div>
+<% i+=1 %>
+<% end %>

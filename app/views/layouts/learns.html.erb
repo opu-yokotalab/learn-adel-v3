@@ -8,6 +8,7 @@
 	<%= stylesheet_link_tag 'learn' %>
 	<link href="/stylesheets/prettify.css" type="text/css" rel="stylesheet" />
 	<script type="text/javascript" src="/javascripts/prettify.js"></script>
+	<script type="text/javascript" src="/javascripts/prototype.js"></script>
 
 	<script type="text/javascript">try{
 		window.addEventListener("load",prettyPrint,false);
@@ -23,6 +24,8 @@
 <div class="menu_ope">
 <%= render :partial=>'menu_ope'%>
 </div>
+
+<%= render :partial=>'msg' %>
 
 <div id="toc" class="table_of_contents">
 <%= render :partial=>'toc' %>
