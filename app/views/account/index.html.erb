@@ -1,6 +1,6 @@
 <p style="text-align:left">
 <% if session[:user] %>
-<span style="font-weight:bold"><%= self.current_user.login %></span> | <%= link_to 'パスワード変更', :action => 'changePasswd' %> | <%= link_to 'ログアウト', :action => 'logout' %>
+<span style="font-weight:bold"><%= self.current_user.login %></span> | <%= link_to 'パスワード変更', :action => 'change_passwd' %> | <%= link_to 'ログアウト', :action => 'logout' %>
 <% else %>
 <%= link_to 'アカウント登録', :action => 'signup' %> | <%= link_to 'ログイン', :action => 'login' %>
 <% end %>

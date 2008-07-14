@@ -32,16 +32,17 @@ class AccountController < ApplicationController
     end
   end
 
-	def changePasswd
-		@user = User.find(session[:user])
-		return unless request.post?
-		@user.save!
-		self.current_user = @user
-		redirect_back_or_default(:controller => '/account', :action => 'index')
-		flash[:notice] = "Thanks for signing up!"
-	rescue ActiveRecord::RecordInvalid
-		render :action => 'signup'
-	end
+  def change_password
+    self.current_user.password = params[:password]
+    self.current_user.password_confirmation = params[:password_confirmation]
+    begin
+      self.current_user.save!
+      flash[:notice] = 'Successfully changed your password'
+    rescue ActiveRecord::RecordInvalid => e
+      flash[:error] = "Couldn't change your password: #{e}" 
+    end
+    redirect_back_or_default(:contoller => '/account', :action => 'index')
+  end
 
   def signup
     @user = User.new(params[:user])

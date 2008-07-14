@@ -1,0 +1,12 @@
+<% form_tag :controller=>"/account", :action=>"change_password" do %>
+  <h3>パスワード変更</h3>
+  <ul>
+    <li>
+      <h4>新しいパスワード：<input id="password" name="password" type="password" size="20" value="" /></h4>
+    </li>
+    <li>
+      <h4>新しいパスワード(確認)：<input id="password_confirmation" name="password_confirmation" type="password" size="20" value="" /></h4>
+    </li>
+  </ul>
+<p><%= submit_tag 'Sign up' %></p>
+<% end %>
