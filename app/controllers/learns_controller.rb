@@ -2,6 +2,8 @@ require 'rexml/document'
 require 'net/http'
 
 class LearnsController < ApplicationController
+	skip_before_filter :verify_authenticity_token
+
 =begin
   # GET /learns
   # GET /learns.xml
@@ -125,13 +127,15 @@ class LearnsController < ApplicationController
 	def examCommit	#まだ実証してない
 		# test_key_hashをテスト機構に問合せ
 		http = Net::HTTP.new('localhost',80)
-		req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
+		#req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
+		req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
 		res = http.request(req,"&mode=get_testkey&user_id=#{session[:user]}")
 		test_key_hash = res.body
 		
 		# テスト結果を取得
 		http = Net::HTTP.new('localhost' , 80)
-		req = Net::HTTP::Get.new("/~learn/cgi-bin/prot_test/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
+		#req = Net::HTTP::Get.new("/~learn/cgi-bin/prot_test/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
+		req = Net::HTTP::Get.new("/cgi-bin/prot_test/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
 		res = http.request(req)
 		res_buff = res.body.split(/,/)
 		
@@ -317,21 +321,20 @@ class LearnsController < ApplicationController
 			dom_obj.each_element do |elem|
 				str_buff += XTDLNodeSearch(elem)
 			end
-=begin
 		elsif dom_obj.name["examination"] then ## テスト記述要素ならば
 			# テストフラグをON
-			$test_flag = true
+			@test_flag = true
 			
 			# テスト記述要素以下をすべてテスト機構にPost
 			http = Net::HTTP.new('localhost', 80)
-			req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
+			#req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
+			req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
 			res = http.request(req,"&mode=set&user_id=#{session[:user].id}&src=" + dom_obj.to_s)
 			str_buff += res.body
 			
 			testid = dom_obj.attributes["id"]
 			
-			str_buff += "<br /><br /><form method=\"POST\" action=\"examCommit/#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"テストの合否判定\" /></div></form>"
-=end
+			str_buff += "<br /><br /><form method=\"POST\" action=\"/examCommit/#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"テストの合否判定\" /></div></form>"
 		else ## 意味要素　ならば
 			if dom_obj.attributes["title"] != ""
 				str_buff += "<h3>" + dom_obj.attributes["title"].toutf8 + "</h3>"
