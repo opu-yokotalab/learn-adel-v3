@@ -326,11 +326,11 @@ class LearnsController < ApplicationController
 			@test_flag = true
 			
 			# テスト記述要素以下をすべてテスト機構にPost
-			#http = Net::HTTP.new('localhost', 80)
-			http = Net::HTTP.new('localhost', 4000)
+			http = Net::HTTP.new('localhost', 80)
+			#http = Net::HTTP.new('localhost', 4000)
 			#req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
-			#req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
-			req = Net::HTTP::Post.new("/")
+			req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
+			#req = Net::HTTP::Post.new("/")
 			res = http.request(req,"&mode=set&user_id=#{session[:user]}&src=" + dom_obj.to_s)
 			
 			str_buff += res.body

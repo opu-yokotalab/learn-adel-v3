@@ -13,22 +13,22 @@
 		<p>Let's begin learning!!</p>
 		<br />
 	</div>
-</div>
 
 <% if session[:user] %>
-<div style="position:relative;left:15px;border:solid gray 2px;">
-	<h3>学習する教材を選択してください</h3>
-	<dl>
-	<% @seqList.each do |val| %>
-		<% i=0 %>
-		<dt style="margin:8px 35px;">
-			<%= link_to "学習を始める", "/learns/#{val[0]}" %>
-			<label>
-			<span style="font-weight:bold;font-size:13pt;color:darkred"> ： <%= val[1] %></span>
-			</label>
-		</dt>
-		<% i+=1 %>
-	<% end %>
-	</dl>
-</div>
+	<div style="position:relative;left:15px;border:solid gray 2px;">
+		<h3>学習する教材を選択してください</h3>
+		<dl>
+<% @seqList.each do |val| %>
+<% i=0 %>
+			<dt style="margin:8px 35px;">
+				<%= link_to "学習を始める", "/learns/#{val[0]}" %>
+				<label>
+				<span style="font-weight:bold;font-size:13pt;color:darkred"> ： <%= val[1] %></span>
+				</label>
+			</dt>
+<% i+=1 %>
 <% end %>
+		</dl>
+	</div>
+<% end %>
+</div>
