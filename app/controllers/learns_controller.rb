@@ -127,15 +127,15 @@ class LearnsController < ApplicationController
 	def examCommit	#まだ実証してない
 		# test_key_hashをテスト機構に問合せ
 		http = Net::HTTP.new('localhost',80)
-		#req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
-		req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
+		req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi")
+		#req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
 		res = http.request(req,"&mode=get_testkey&user_id=#{session[:user]}")
 		test_key_hash = res.body
 		
 		# テスト結果を取得
 		http = Net::HTTP.new('localhost' , 80)
-		#req = Net::HTTP::Get.new("/~learn/cgi-bin/prot_test/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
-		req = Net::HTTP::Get.new("/cgi-bin/prot_test/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
+		req = Net::HTTP::Get.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
+		#req = Net::HTTP::Get.new("/cgi-bin/prot_test/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
 		res = http.request(req)
 		res_buff = res.body.split(/,/)
 		
@@ -328,8 +328,8 @@ class LearnsController < ApplicationController
 			# テスト記述要素以下をすべてテスト機構にPost
 			http = Net::HTTP.new('localhost', 80)
 			#http = Net::HTTP.new('localhost', 4000)
-			#req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test/adel_exam.cgi")
-			req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
+			req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi")
+			#req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
 			#req = Net::HTTP::Post.new("/")
 			res = http.request(req,"&mode=set&user_id=#{session[:user]}&src=" + dom_obj.to_s)
 			
