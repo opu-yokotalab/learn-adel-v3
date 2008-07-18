@@ -333,7 +333,6 @@ class LearnsController < ApplicationController
 			#req = Net::HTTP::Post.new("/")
 			res = http.request(req,"&mode=set&user_id=#{session[:user]}&src=" + dom_obj.to_s)
 			
-			str_buff += dom_obj.to_s
 			str_buff += res.body
 			
 			testid = dom_obj.attributes["id"]
