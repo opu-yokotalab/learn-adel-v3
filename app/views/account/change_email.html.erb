@@ -1,0 +1,12 @@
+<% form_tag :controller=>"/account", :action=>"change_email_method" do %>
+  <h3>メールアドレス変更</h3>
+  <ul>
+    <li>
+      <h4>現在のメールアドレス：<%= self.current_user.email %></h4>
+    </li>
+    <li>
+      <h4>新しいメールアドレス：<input id="email" name="email" type="text" size="50" value="" /></h4>
+    </li>
+  </ul>
+<p><%= submit_tag 'メールアドレス変更' %></p>
+<% end %>

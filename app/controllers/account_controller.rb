@@ -28,21 +28,32 @@ class AccountController < ApplicationController
         cookies[:auth_token] = { :value => self.current_user.remember_token , :expires => self.current_user.remember_token_expires_at }
       end
       redirect_back_or_default(:controller => '/account', :action => 'index')
-      flash[:notice] = "Logged in successfully"
+      flash[:notice] = "ログインしました。"
     end
   end
 
-  def change_password
+  def change_passwd_method
     self.current_user.password = params[:password]
     self.current_user.password_confirmation = params[:password_confirmation]
     begin
       self.current_user.save!
-      flash[:notice] = 'Successfully changed your password'
+      flash[:notice] = 'パスワードを変更しました。'
     rescue ActiveRecord::RecordInvalid => e
-      flash[:error] = "Couldn't change your password: #{e}" 
+      flash[:error] = "パスワードを変更できませんでした: #{e}" 
     end
     redirect_back_or_default(:contoller => '/account', :action => 'index')
   end
+
+	def change_email_method
+		self.current_user.email = params[:email]
+		begin
+			self.current_user.save!
+			flash[:notice] = 'メールアドレスを変更しました。'
+		rescue ActiveRecord::RecordInvalid => e
+			flash[:error] = "メールアドレスを変更できませんでした: #{e}"
+		end
+		redirect_back_or_default(:contoller => '/account', :action => 'index')
+	end
 
   def signup
     @user = User.new(params[:user])
@@ -50,7 +61,7 @@ class AccountController < ApplicationController
     @user.save!
     self.current_user = @user
     redirect_back_or_default(:controller => '/account', :action => 'index')
-    flash[:notice] = "Thanks for signing up!"
+    flash[:notice] = "ユーザを登録しました。"
   rescue ActiveRecord::RecordInvalid
     render :action => 'signup'
   end
@@ -59,7 +70,7 @@ class AccountController < ApplicationController
     self.current_user.forget_me if logged_in?
     cookies.delete :auth_token
     reset_session
-    flash[:notice] = "You have been logged out."
+    flash[:notice] = "ログアウトしました。"
     redirect_back_or_default(:controller => '/account', :action => 'index')
   end
 end
