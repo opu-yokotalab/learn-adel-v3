@@ -124,7 +124,7 @@ class LearnsController < ApplicationController
 		end
 	end
 	
-	def examCommit	#まだ実証してない
+	def examCommit
 		# test_key_hashをテスト機構に問合せ
 		http = Net::HTTP.new('localhost',80)
 		req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi")
@@ -200,6 +200,8 @@ class LearnsController < ApplicationController
 			@msg.push(m[:action_value].gsub(/\"/,'').toutf8)
 		end
 		
+		@cur_level = LevelLog.getCurrentLevel(session[:user], SeqLog.getCurrentId(session[:user]))
+		
 		makeView(ModuleLog.getCurrentModule(session[:user], SeqLog.getCurrentId(session[:user])))
 	end
 	
@@ -211,6 +213,16 @@ class LearnsController < ApplicationController
 			@bodystr_html = GetXTDLSources(node_array)
 		else
 			@bodystr_html = "<h2>学習を終了します.</h2>"
+			
+			@seqList=[]
+			i=0
+			if session[:user]
+				seqs = EntSeq.find(:all,:order=>"id")
+				seqs.each do |seq|
+					@seqList[i] = [seq.id,seq.seq_title.toutf8]
+					i+=1
+				end
+			end
 		end
 		
 		# 目次項目提示プロセス
