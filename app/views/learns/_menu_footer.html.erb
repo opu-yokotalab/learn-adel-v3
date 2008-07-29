@@ -1,0 +1,24 @@
+<div class="menuList">
+
+<table style="width:100%;">
+	<td style="width:75%;"></td>
+	<td>
+		<table>
+			<td width="100px">
+				<%= button_to '難しい内容', :action=>'changeLv', :id=>'up' %> 
+			</td>
+			<td width="100px">
+				<%= button_to '簡単な内容', :action=>'changeLv', :id=>'down' %> 
+			</td>
+			<td>
+				<% unless @test_flag %>
+				<%= link_to '<img border="0" width="80px" src="/images/next_ico.gif" />', :action=>'nextModule' %>
+				<% else %>
+				<img border="0" width="80px" src="/images/next_forb_ico.gif" />
+				<% end%>
+			</td>
+		</table>
+	</td>
+</table>
+
+</div>
