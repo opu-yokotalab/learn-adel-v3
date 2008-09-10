@@ -15,6 +15,10 @@
 	</div>
 
 <% if session[:user] %>
+	<div style="position:relative; left:15px; bottom:15px;">
+	<span style="color:red;">更新情報</span><br/>
+<%= render :file => '/account/update' %>
+	</div>
 	<div style="position:relative;left:15px;border:solid gray 2px;">
 		<h3>学習する教材を選択してください</h3>
 		<dl>
