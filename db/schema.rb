@@ -9,7 +9,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 15) do
+ActiveRecord::Schema.define(:version => 20080818050647) do
 
   create_table "action_logs", :force => true do |t|
     t.integer  "user_id"
@@ -40,6 +40,19 @@ ActiveRecord::Schema.define(:version => 15) do
     t.integer "max_sum_point"
   end
 
+  create_table "examinations", :force => true do |t|
+    t.integer  "user_id"
+    t.string   "test_id"
+    t.string   "group_id"
+    t.integer  "group_mark"
+    t.integer  "ques_id"
+    t.float    "ques_pass"
+    t.string   "test_key"
+    t.string   "examination_pkey"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "level_logs", :force => true do |t|
     t.integer  "user_id"
     t.integer  "ent_seq_id"
@@ -61,6 +74,20 @@ ActiveRecord::Schema.define(:version => 15) do
     t.string   "event_arg"
     t.datetime "created_on"
     t.integer  "dis_code"
+  end
+
+  create_table "pre_evaluates", :force => true do |t|
+    t.integer  "chk_selection"
+    t.integer  "eval_result"
+    t.integer  "total_point"
+    t.boolean  "comp_eval"
+    t.integer  "crct_total_weight"
+    t.integer  "incrct_total_weight"
+    t.integer  "total_weight"
+    t.string   "eval_key"
+    t.string   "evaluate_pkey"
+    t.datetime "created_at"
+    t.datetime "updated_at"
   end
 
   create_table "question_logs", :force => true do |t|

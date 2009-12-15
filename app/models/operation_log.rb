@@ -200,29 +200,29 @@ class OperationLog < ActiveRecord::Base
 				if var_name
 					var_tbl.push([var_name,cur_level.to_i])
 				end
-				else
-					# 条件式の評価
-					# フラグ使わなくて良い方法　誰かおせーて
-					if (reg =~ condition[0])
-						var_name = $1 # 変数名
-						symbol = $2 # 式
-						value1 = $3.to_i # 値
-						value_left_flag = false # 条件式の値が左辺にあるか否か　フラグ
-					elsif ( reg2 =~ condition[0])
-						var_name = $3
-						symbol = $2
-						value1 = $1.to_i
-						value_left_flag = true
-					end
-					
-					# 変数に格納されている値を取得
-					value2 = nil
-					var_tbl.each do |v|
+			else
+				# 条件式の評価
+				# フラグ使わなくて良い方法　誰かおせーて
+				if (reg =~ condition[0])
+					var_name = $1 # 変数名
+					symbol = $2 # 式
+					value1 = $3.to_i # 値
+					value_left_flag = false # 条件式の値が左辺にあるか否か　フラグ
+				elsif ( reg2 =~ condition[0])
+					var_name = $3
+					symbol = $2
+					value1 = $1.to_i
+					value_left_flag = true
+				end
+				
+				# 変数に格納されている値を取得
+				value2 = nil
+				var_tbl.each do |v|
 					if v[0] == var_name
 						value2 = v[1]
 					end
 				end
-				
+			
 				if value2
 					case symbol
 					when /==/
@@ -261,10 +261,10 @@ class OperationLog < ActiveRecord::Base
 					return false
 				end
 			end
-		n+=1
+			n+=1
 		end
-	
-	return true
+		
+		return true
 	end
 	
 	validates_inclusion_of :operation_code, :in=>%w(next toc changeLv)

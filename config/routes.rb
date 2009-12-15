@@ -1,4 +1,5 @@
 ActionController::Routing::Routes.draw do |map|
+  map.resources :exams
   map.resources :learns
 
   # The priority is based upon order of creation: first created -> highest priority.
@@ -37,6 +38,10 @@ ActionController::Routing::Routes.draw do |map|
   map.connect 'toc/:id', :controller => 'learns', :action => 'toc'
   map.connect 'changeLv/:id', :controller => 'learns', :action => 'changeLv'
   map.connect 'examCommit/:id', :controller => 'learns', :action => 'examCommit'
+  #map.connect 'pre_evaluate/:selected/:type/:value/:ques_pkey', :controller => 'learns', :action => 'exam_pre_evaluate'
+  #map.connect 'evaluate/:name/:ques_pkey', :controller => 'learns', :action => 'exam_evaluate'
+  map.connect 'pre_evaluate/:selected/:type/:value/:ques_pkey', :controller => 'exams', :action => 'exam_pre_evaluate'
+  map.connect 'evaluate/:name/:ques_pkey', :controller => 'exams', :action => 'exam_evaluate'
   
   map.connect ':controller/:action/:id'
   map.connect ':controller/:action/:id.:format'

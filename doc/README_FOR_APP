@@ -1,14 +1,95 @@
-インストール手順
+ADELインストール手順
+
+環境を導入(Vine Linux 4.2)
+必要なモジュール
+・aptを使って入れるもの
+ruby
+ruby-devel
+(rdoc)
+(ri)
+(irb)(この３つはたぶんrubyを入れるとついてくる)
+libxslt
+libxslt-devel
+postgresql
+postgresql-server
+(openssl)
+(openssl-devel)
+(sqlite3)
+(sqlite3-devel)(sqlite3を使うなら)
+
+・rubygems(gem)を使って入れるもの
+rails
+postgres-pr
+(mongrel)(あれば便利)
+(sqlite3-ruby)(sqlite3を使うなら)
+
+・自分でコンパイルする必要があるもの
+ruby-xslt(http://raa.ruby-lang.org/project/ruby-xslt/)
+一応導入方法（西さんのテキストから）
+# tar zxvf ruby-xslt_0.9.3.tar.gz
+展開後、展開したディレクトリに移動し、コンパイルとインストールを行う。
+# ruby extconf.rb
+# make
+# make test
+# make install
+# make clean（これは一応）
+
+■教材リソースリポジトリのインストール
+JDKのDL・インストール    (http://java.sun.com/javase/ja/6/download.html)
+
+eXistのダウンロード    (http://exist-db.org/)
+eXist-{version}.jar
+
+eXistのインストール
+java -jar eXist-{version}.jar -p /usr/local/exist
+
+起動スクリプト
+/usr/local/exist/bin/startup.sh
+停止スクリプト
+/usr/local/exist/bin/shutdown.sh
+
+自動起動設定
+/etc/rc.local　に
+/usr/local/exist/bin/startup.sh &
+を追加
+
+http://[ServerName]:8080/exist/index.xml　でアクセス
+メニュー下部の[Administration -> Admin]でログイン
+リポジトリの構成
+db - adel_v3 - examination - db   ------------ テスト問題の格納場所
+     |             |          + error.xml
+     |             |          + evaluate.xml
+     |             |          + input_type.xml
+     |             |          + test.xsl
+     |             + xtdl_resources --------------- XTDLリソースの格納場所
+     + rss
+     + system
+
+
+ADELを導入
 1.svnを使って全部とってくる
 2.existを導入（JDKがなければ入れておくこと）
 3.existに教材を /adel_v3/xtdl_resources/なんとか.xml の形で追加
   （alpha上のやつをコピーとか）
-4.アプリケーションのディレクトリ上で
+# 参考：existデータのバックアップとリストア
+ % /usr/local/exist/bin/backup.sh -u admin -b /db -d {バックアップ先}
+ % /usr/local/exist/bin/backup.sh -u admin -r {バックアップ先（フルパス）}/__contents__.xml
+4.railsアプリケーションのディレクトリ上で
   % rake db:migrate
 5.ent_seqとent_moduleを適当に追加
   （alpha上のやつをエクスポートしてインポートとか）
-6.たぶん動くはず
+6.log/development.logを空ファイルでいいから作成
+7.% script/server
+8.たぶん動くはず
+
+
+補足
+・existのデータとpostgresqlのデータはなんとかパッケージ化できないか？
+・Vineのrubyのバージョンが古い（1.8.5はサポート終了）．
+　rubyは自力でコンパイルしてインストールもあり．
+　その場合はrailsかsqliteのインストール時にエラーが出たらopenssl-develをrubyに入れておく
+　導入方法はruby-xsltの方法参照
 
 メモ
-使ったプラグイン
+ADELに使ったプラグイン
 acts_as_authenticated：ログインシステム

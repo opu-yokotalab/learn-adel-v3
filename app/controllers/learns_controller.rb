@@ -1,95 +1,13 @@
 require 'rexml/document'
 require 'net/http'
 
+require 'func/set_questions'
+require 'func/history'
+require 'func/evaluate'
+
 class LearnsController < ApplicationController
 	skip_before_filter :verify_authenticity_token
-
-=begin
-  # GET /learns
-  # GET /learns.xml
-
-  def index
-    @learns = Learn.find(:all)
-
-    respond_to do |format|
-      format.html # index.html.erb
-      format.xml  { render :xml => @learns }
-    end
-  end
-
-  # GET /learns/1
-  # GET /learns/1.xml
-  #def show
-  #  @learn = Learn.find(params[:id])
-
-  #  respond_to do |format|
-  #    format.html # show.html.erb
-  #    format.xml  { render :xml => @learn }
-  #  end
-  #end
-
-  # GET /learns/new
-  # GET /learns/new.xml
-  def new
-    @learn = Learn.new
-
-    respond_to do |format|
-      format.html # new.html.erb
-      format.xml  { render :xml => @learn }
-    end
-  end
-
-  # GET /learns/1/edit
-  def edit
-    @learn = Learn.find(params[:id])
-  end
-
-  # POST /learns
-  # POST /learns.xml
-  def create
-    @learn = Learn.new(params[:learn])
-
-    respond_to do |format|
-      if @learn.save
-        flash[:notice] = 'Learn was successfully created.'
-        format.html { redirect_to(@learn) }
-        format.xml  { render :xml => @learn, :status => :created, :location => @learn }
-      else
-        format.html { render :action => "new" }
-        format.xml  { render :xml => @learn.errors, :status => :unprocessable_entity }
-      end
-    end
-  end
-
-  # PUT /learns/1
-  # PUT /learns/1.xml
-  def update
-    @learn = Learn.find(params[:id])
-
-    respond_to do |format|
-      if @learn.update_attributes(params[:learn])
-        flash[:notice] = 'Learn was successfully updated.'
-        format.html { redirect_to(@learn) }
-        format.xml  { head :ok }
-      else
-        format.html { render :action => "edit" }
-        format.xml  { render :xml => @learn.errors, :status => :unprocessable_entity }
-      end
-    end
-  end
-
-  # DELETE /learns/1
-  # DELETE /learns/1.xml
-  def destroy
-    @learn = Learn.find(params[:id])
-    @learn.destroy
-
-    respond_to do |format|
-      format.html { redirect_to(learns_url) }
-      format.xml  { head :ok }
-    end
-  end
-=end
+	
 	def nextModule
 		operation_event("next","-")
 	end
@@ -126,18 +44,20 @@ class LearnsController < ApplicationController
 	
 	def examCommit
 		# test_key_hashをテスト機構に問合せ
-		http = Net::HTTP.new('localhost',80)
-		req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi")
+		#http = Net::HTTP.new('localhost',80)
+		#req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi")
 		#req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
-		res = http.request(req,"&mode=get_testkey&user_id=#{session[:user]}")
-		test_key_hash = res.body
+		#res = http.request(req,"&mode=get_testkey&user_id=#{session[:user]}")
+		#test_key_hash = res.body
+		test_key_hash = exam_get_testkey(session[:user])
 		
 		# テスト結果を取得
-		http = Net::HTTP.new('localhost' , 80)
-		req = Net::HTTP::Get.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
+		#http = Net::HTTP.new('localhost' , 80)
+		#req = Net::HTTP::Get.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
 		#req = Net::HTTP::Get.new("/cgi-bin/prot_test/adel_exam.cgi?mode=result&test_key=#{test_key_hash}")
-		res = http.request(req)
-		res_buff = res.body.split(/,/)
+		#res = http.request(req)
+		res = exam_result(test_key_hash)
+		res_buff = res.split(/,/)
 		
 		#result [["q_id","得点"], ... ]
 		result = []
@@ -338,14 +258,16 @@ class LearnsController < ApplicationController
 			@test_flag = true
 			
 			# テスト記述要素以下をすべてテスト機構にPost
-			http = Net::HTTP.new('localhost', 80)
+			#http = Net::HTTP.new('localhost', 80)
 			#http = Net::HTTP.new('localhost', 4000)
-			req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi")
+			#req = Net::HTTP::Post.new("/~learn/cgi-bin/prot_test_v3/adel_exam.cgi")
 			#req = Net::HTTP::Post.new("/cgi-bin/prot_test/adel_exam.cgi")
 			#req = Net::HTTP::Post.new("/")
-			res = http.request(req,"&mode=set&user_id=#{session[:user]}&src=" + dom_obj.to_s)
+			#res = http.request(req,"&mode=set&user_id=#{session[:user]}&src=" + dom_obj.to_s)
 			
-			str_buff += res.body
+			str_buff += exam_set(session[:user],dom_obj.to_s)
+			
+			#str_buff += res.body
 			
 			testid = dom_obj.attributes["id"]
 			
@@ -518,5 +440,179 @@ class LearnsController < ApplicationController
 			when /false/          # 実行するアクション無し
 			end
 		end
+	end
+	
+	#テスト機構：出題
+	def exam_set(user_id,src)
+		# eXist, postgreSQLの接続先のホスト
+		base_eXist_host = 'localhost'
+		# eXist用接続ポート
+		base_eXist_port = 8080
+		# 問題DB
+		base_db_uri = "/exist/rest/db/adel_v3/examination/db/"
+
+		# XSLTスタイルシート
+		base_xslt_all_uri = "/exist/rest/db/adel_v3/examination/test.xsl"
+		base_xslt_eval_uri = "/exist/rest/db/adel_v3/examination/evaluate.xsl"
+
+		# XHTML変換時に問題形式からinput要素のtype属性値
+		# を決定するための変換テーブル
+		base_inputType_uri = "/exist/rest/db/adel_v3/examination/input_type.xml"
+
+		# エラー時に表示するxhtml
+		base_err_uri = "/exist/rest/db/adel_v3/examination/error.xml"
+
+		# Webサーバからドキュメントを取得
+		#http = Net::HTTP.new(base_eXist_host, base_eXist_port)
+		#req = Net::HTTP::Get.new(base_call_uri)
+		
+		#res = http.request(req)
+		
+		# ダミーの呼び出し記述
+		#params["src"] = res.body
+		
+		## 本処理  
+		# DOMオブジェクトに変換
+		tmpDoc = REXML::Document.new(src)
+		
+		# ユーザid取得
+		#user_id = params["user_id"].to_s
+		# ユーザidを指定して、出題機構のインスタンスを生成
+		setQues = Set_question.new(user_id)
+		
+		# 呼び出し記述から出題テーブルを生成
+		setTable = Array.new
+		setTable = setQues.make_table(tmpDoc, base_eXist_host, base_eXist_port, base_db_uri)
+		
+		# 出題テーブルから出題履歴を作成
+		# テストの固有識別子を作成
+		setHis = History.new
+		
+		# 履歴DBに接続
+		#conn = setHis.open_setHistory(base_pgsql_host, base_pgsql_port, pgsql_user_name, pgsql_user_passwd)
+		
+		# テーブルの要素ごとに処理
+		setTable.each do |tblLine|
+			# 1ラインずつ履歴を記録
+			setHis.put_setHistory(user_id, setQues.get_testId, tblLine)
+		end
+		
+		# 履歴DBから切断
+		#setHis.close_setHistory(conn)
+		
+		# 出題テーブルから中間XMLを生成
+		setElem = REXML::Element.new
+		setElem = setQues.make_xml(setTable, base_eXist_host, base_eXist_port, base_db_uri, base_inputType_uri)
+		
+		# 中間XMLをXSLTを用いてXHTMLに変換
+		xhtmlElem = REXML::Element.new
+		xhtmlElem = setQues.make_xhtml(setElem, base_eXist_host, base_eXist_port, base_xslt_all_uri)
+		
+		# ブラウザで表示させるためのおまじない
+		#print "Content-type: text/html\n\n"
+		# print xhtmlElem.to_s # 動作確認用（完全なxhtmlを出力）
+		return xhtmlElem.get_elements("//body/node()").to_s
+	end
+	
+	def exam_get_testkey(user_id) # 作成したテストの固有識別子(一度の出題限り有効)
+		# 受け取ったユーザidの一番新しい出題のtest_keyを渡せばいいんじゃないかと。
+
+		# ダミー
+		#params["user_id"] = "uid"
+
+		# 履歴モジュールのインスタンスを作成
+		testHis = History.new
+
+		# 履歴DBに接続
+		#conn = testHis.open_setHistory(base_pgsql_host, base_pgsql_port, pgsql_user_name, pgsql_user_passwd)
+
+		# 指定されたuser_idをもつ最新のtest_keyを返す
+		str = testHis.get_testidByUserid(user_id)
+
+		# 履歴DBから切断
+		#testHis.close_setHistory(conn)
+
+		# ブラウザで表示させるためのおまじない
+		#print "Content-type: text/html\n\n"
+		#print "<test_key>" + str + "</test_key>"
+		return str
+	end
+	
+	def exam_result(test_key) # テスト全体の評価結果出力
+		# 正規化した評価結果を渡す
+		# {"group_id" => 得点(配点*得点率), ...}
+		# 得点率 = グループ単位で獲得した得点/グループから出題された問題の総得点
+
+		#params["test_key"] = "6a0027335cdc26cbd4a0ec5f13c0f4b7"
+
+		# 履歴モジュールのインスタンスを作成
+		evalHis = History.new
+
+		# 評価モジュールのインスタンスを生成
+		evalQues = Evaluate.new
+
+		# 履歴格納用のハッシュ
+		evalHisHash = Hash.new
+
+		# 履歴DBに接続
+		#conn = evalHis.open_setHistory(base_pgsql_host, base_pgsql_port, pgsql_user_name, pgsql_user_passwd)
+
+		# テスト全体の評価に必要な情報を取得
+		tblEval = evalHis.get_evalHistory(test_key)
+		#p tblEval  
+
+		# 評価結果に未評価部分がある
+		reEvalFlag = 0 # 再評価のフラグ
+		tblEval.each{|tblLine|
+			if tblLine["eval_result"] == "" then
+				# 未回答状態でプレ評価
+				# 出題履歴
+				setHisHash = Hash.new
+				setHisHash = evalHis.get_setHistory(tblLine["eval_key"].to_s)
+				#p setHisHash
+				# 未解答の場合に、未解答のログをつける
+				evalResultHash = Hash.new
+				evalResultHash = evalQues.preEvaluate("radio", "NULL", "NULL", setHisHash, base_eXist_host, base_eXist_port, base_db_uri)
+				#p evalResultHash
+				# 評価履歴を記録
+				evalHis.put_preEvalHistory(tblLine["eval_key"].to_s, evalResultHash)      
+
+				# ques_pkeyからプレ評価履歴を取得
+				evalHisHash = evalHis.get_preEvalHistory(tblLine["eval_key"].to_s)
+
+				# 確定した解答にマークをつける
+				evalHis.put_evalHistory(evalHisHash["evaluate_pkey"].to_s)
+
+				# 再評価を行う
+				reEvalFlag = 1
+		end
+		}
+
+		if reEvalFlag == 1 then # 再評価が必要
+			# 再度テスト全体の評価に必要な情報を取得
+			tblEval = evalHis.get_evalHistory(test_key)
+			#p tblEval
+			# フラグの初期化
+			reEvalFlag = 0
+		end
+
+		# 履歴DBから切断
+		#evalHis.close_setHistory(conn)
+
+		# 評価結果の正規化
+		normHash = Hash.new
+		normHash = evalQues.evaluate(tblEval)
+
+		# ハッシュを受け渡すための形式に変換
+		str = String.new
+		normHash.each{|key, value|
+			str = str + key.to_s + ":" + value.to_s + ","
+		}
+		str = str.slice(0, str.size - 1)
+
+		# ブラウザで表示させるためのおまじない
+		#print "Content-type: text/html\n\n"
+		#print "<result>" + str + "</result>"
+		return str
 	end
 end
