@@ -117,7 +117,7 @@ class LearnsController < ApplicationController
 		@msg = Array.new
 		msg_action = ActionLog.find(:all,:conditions=>"action_code = 'msg' AND dis_code = #{dis_code}",:order=>"id")
 		msg_action.each do |m|
-			@msg.push(m[:action_value].gsub(/\"/,'').toutf8)
+			@msg.push(m[:action_value].gsub(/\"/,''))
 		end
 		
 		@cur_level = LevelLog.getCurrentLevel(session[:user], SeqLog.getCurrentId(session[:user]))
@@ -139,7 +139,7 @@ class LearnsController < ApplicationController
 			if session[:user]
 				seqs = EntSeq.find(:all,:order=>"id")
 				seqs.each do |seq|
-					@seqList[i] = [seq.id,seq.seq_title.toutf8]
+					@seqList[i] = [seq.id,seq.seq_title]
 					i+=1
 				end
 			end
@@ -246,7 +246,7 @@ class LearnsController < ApplicationController
 		flag = false # 判定フラグ
 		if dom_obj.name["section"] ## section 要素ならば
 			if dom_obj.attributes["title"] != ""
-				str_buff += "<h2>" + dom_obj.attributes["title"].toutf8 + "</h2>"
+				str_buff += "<h2>" + dom_obj.attributes["title"] + "</h2>"
 			else
 				str_buff += "<br /><br />"
 			end
@@ -274,7 +274,7 @@ class LearnsController < ApplicationController
 			str_buff += "<br /><br /><form method=\"POST\" action=\"/examCommit/#{testid}\" class=\"button-to\"><div><input type=\"submit\" value=\"テストの合否判定\" /></div></form>"
 		else ## 意味要素　ならば
 			if dom_obj.attributes["title"] != ""
-				str_buff += "<h3>" + dom_obj.attributes["title"].toutf8 + "</h3>"
+				str_buff += "<h3>" + dom_obj.attributes["title"] + "</h3>"
 			else
 				str_buff += "<br /><br />"
 			end
@@ -293,7 +293,7 @@ class LearnsController < ApplicationController
 			else
 				# HTMLの場合
 				dom_obj.each do |elem|
-					str_buff += elem.to_s.toutf8
+					str_buff += elem.to_s
 				end
 			end
 		end
