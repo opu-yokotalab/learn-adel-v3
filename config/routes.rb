@@ -1,4 +1,12 @@
 ActionController::Routing::Routes.draw do |map|
+  map.connect 'view/:id', :controller => 'learns', :action => 'view'
+  map.connect 'next/:id', :controller => 'learns', :action => 'nextModule'
+  map.connect 'toc/:id', :controller => 'learns', :action => 'toc'
+  map.connect 'changeLv/:id', :controller => 'learns', :action => 'changeLv'
+  map.connect 'examCommit/:id', :controller => 'learns', :action => 'examCommit'
+  map.connect 'pre_evaluate/:selected/:type/:value/:ques_pkey', :controller => 'exams', :action => 'exam_pre_evaluate'
+  map.connect 'evaluate/:name/:ques_pkey', :controller => 'exams', :action => 'exam_evaluate'
+
   map.resources :exams
   map.resources :learns
 
@@ -33,16 +41,9 @@ ActionController::Routing::Routes.draw do |map|
   # See how all your routes lay out with "rake routes"
 
   # Install the default routes as the lowest priority.
-  map.connect 'view/:id', :controller => 'learns', :action => 'view'
-  map.connect 'next/:id', :controller => 'learns', :action => 'nextModule'
-  map.connect 'toc/:id', :controller => 'learns', :action => 'toc'
-  map.connect 'changeLv/:id', :controller => 'learns', :action => 'changeLv'
-  map.connect 'examCommit/:id', :controller => 'learns', :action => 'examCommit'
-  #map.connect 'pre_evaluate/:selected/:type/:value/:ques_pkey', :controller => 'learns', :action => 'exam_pre_evaluate'
-  #map.connect 'evaluate/:name/:ques_pkey', :controller => 'learns', :action => 'exam_evaluate'
-  map.connect 'pre_evaluate/:selected/:type/:value/:ques_pkey', :controller => 'exams', :action => 'exam_pre_evaluate'
-  map.connect 'evaluate/:name/:ques_pkey', :controller => 'exams', :action => 'exam_evaluate'
   
   map.connect ':controller/:action/:id'
   map.connect ':controller/:action/:id.:format'
+  
+  map.root :controller => 'account'
 end

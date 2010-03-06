@@ -7,9 +7,6 @@ require "rexml/document"
 # Ruby-XSLT
 require "xml/xslt"
 
-# 文字コード変換
-#require "kconv"
-
 # MD5の計算用
 require "digest/md5"
 
@@ -43,23 +40,14 @@ class Set_question
     @user_id = user_id.to_s
   end
 
-    # 多次元配列による出題テーブル
-  # [{グループid, 配点, 問題id, 出題タイプ, 評価基準点, 正解フィルタ, 問題タイプ, 固有識別子}, ...]
-#    @setTable = make_table(input_xml)
-
-    # 処理が完了した出題テーブル
- #   return @setTable
 
   
   # 呼出し記述を内部の出題用テーブルに変換
   def make_table(input_xml, base_eXist_host, base_eXist_port, base_db_uri)
     # Documentオブジェクトを生成
-    #tmpDoc = REXML::Document.new(input_xml)
     tmpDoc = input_xml
-#puts tmpDoc
     # 呼び出し記述がおかしい場合停止する
     if tmpDoc.elements["//examination"] == nil then
-#puts "Error"
       return -1
     end
     
@@ -122,7 +110,6 @@ class Set_question
         # 固有識別子(pkey)の生成
         pkeyInt = Time.now.tv_sec + rand(1000000)
         pkey = Digest::MD5.new.update(pkeyInt.to_s).to_s
-#puts "make_table: " + pkey        
          # ハッシュを配列に格納
         setAry << {"group_id" => group_id, "mark" => mark, "item_id" => item_id, "ques_pass" => ques_pass,"ques_type" => item_type , "selection_type" => ques_type, "ques_correct" => ques_correct, "time" => setTime, "test_key" => pkey}
 
@@ -137,9 +124,6 @@ class Set_question
     # 未決定の問題を確定させる
     setAry = set_table(setAry, base_eXist_host, base_eXist_port, base_db_uri)
 
-    # 中間XMLに変換
-    #make_xml(setAry)
-    
     # テーブルを返す
     return setAry
   end
@@ -212,7 +196,6 @@ class Set_question
       tmpType = tmpElem.attributes["type"]
       tmpElem.delete_attribute("type")
       tmpElem.add_attribute("type", convInputType(tmpType, base_eXist_host, base_eXist_port, base_inputType_uri))
-#puts "make_xml: " + tblLine["test_key"]
       # 固有識別子を追加
       tmpElem.add_attribute("ques_pkey", tblLine["test_key"])
       
@@ -242,16 +225,10 @@ class Set_question
     
     outDoc = REXML::Document.new(out_xml)
     return outDoc
-    #puts @outDoc.class
-    #puts @outDoc
-    #puts @tmpDoc   
   end
 
   # グループidと問題idから該当する問題記述を取得
   def get_item(group_id, item_id, base_eXist_host, base_eXist_port, base_db_uri)
-#    p group_id
-#    p item_id
-
     # Webサーバからドキュメントを取得
     http = Net::HTTP.new(base_eXist_host, base_eXist_port)
     req = Net::HTTP::Get.new(base_db_uri + group_id + ".xml?_query=//problem_set/item[@id=%22" + item_id  + "%22]")
@@ -259,7 +236,7 @@ class Set_question
 
     docElem = REXML::Document.new(res.body)
     elem = docElem.elements["//item"]
-# p elem   
+
     return elem
   end
   

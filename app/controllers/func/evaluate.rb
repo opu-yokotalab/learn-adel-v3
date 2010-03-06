@@ -10,15 +10,6 @@ require "net/http"
 # REXML
 require "rexml/document"
 
-# Ruby-XSLT
-#require "xml/xslt"
-
-# 文字コード変換
-#require "kconv"
-
-# Ruby-PostgreSQL
-#require "postgres"
-
 # MD5の計算用
 require "digest/md5"
 
@@ -46,11 +37,9 @@ class Evaluate
       result = evalRadioType(ques_pkey, value, setHisHash, base_eXist_host, base_eXist_port, base_db_uri)
     when "checkbox" then # 複数選択
       # 複数選択の評価は、選択肢を選んだ履歴を考慮する必要がある
-      #return -1
       result = evalCheckType(ques_pkey, value, setHisHash, base_eXist_host, base_eXist_port, base_db_uri)
     when "text" then # テキスト入力
       # テキスト入力の評価は今の所単純比較
-      #return -1
       result = evalWordType(ques_pkey, value, setHisHash, base_eXist_host, base_eXist_port, base_db_uri)
     else # その他拡張用
       # 好きに実装
@@ -168,43 +157,6 @@ class Evaluate
     # 選んだ選択肢が正解か？
     # 正解かどうかの判定
 
-    #デバグ用表示
-    #print("value=",value,"\n")
-    #print("corAry=",crctAry,"\n")
-
-    #パターンマッチングで正解かどうかの判定
-    #for ans in crctAry do
-    	#デバグ用コード
-	#print("ans=",ans,"\n")
-
-	#判定
-    	#if /#{ans}/ =~ "#{value}" then
-    	   #correctNum = correctNum + 1
-	
-	#if文の終了  
-	#end
-	
-	#ansNum += 1
-    #for文の終了
-    #end
-
-    #もし正解と一致しないときは、不正解にする
-    #if(correctNum < ansNum) then
-    	#incorrectNum =+ 1
-    #else
-	#incorrectNum = 0
-    #end  
-    
-    #ここもデバグ用のプリント
-    #print("corNum=",correctNum,"\n");
-    #print("incorNum=",incorrectNum,"\n");
-
-    #if crctAry.include?(value) then
-    #correctNum += 1
-    #else
-    #incorrectNum += 1
-    #end
-
     # 正解と不正解それぞれの重みを計算
     cWeight = correctNum * crctWeight
     icWeight = incorrectNum * incrctWeight
@@ -259,7 +211,6 @@ class Evaluate
     # 正解の選択肢を配列に
     # (正解の選択肢が複数の時に…と考えたけど使うかどうか微妙)
     crctAry = correctId.split(",")
-    #crctAry = correctId
 
     # 正解数
     correctNum = 0
@@ -267,42 +218,18 @@ class Evaluate
     incorrectNum = 0
     
     # 正解かどうかの判定？
-    #デバグ用表示
-    #print("value=",value,"\n")
-    #print("corAry=",crctAry[0],"\n")
-
     #パターンマッチングで正解かどうかの判定
     for ans in crctAry do
-    	#過去のコード＆デバグ用
-    	#if /#{correctId}/ =~ "#{value}" then
-	#print("ans=",ans,"\n")
-
-	#判定
-    	if /#{ans}/ =~ "#{value}" then
-    	  correctNum += 1
-	  
-	  #過去の産物
-	  #if crctAry.include?(value) then
-     	  #print("correct\n")
-	
-	#if文の終了  
-	end
-
-    #for文の終了
+        if /#{ans}/ =~ "#{value}" then
+            correctNum += 1	
+        end
     end
-
-    #else
-    #print("false\n")
 
     #もし正解と一致しないときは、不正解にする
     if(correctNum == 0) then
       incorrectNum += 1
     end
     
-    #ここもデバグ用のプリント
-    #print("corNum=",correctNum,"\n");
-    #print("incorNum=",incorrectNum,"\n");
-
     # 正解と不正解それぞれの重みを計算
     cWeight = correctNum * crctWeight
     icWeight = incorrectNum * incrctWeight
@@ -329,9 +256,6 @@ class Evaluate
 
     return evalResultHash
   end
-
-
-
 
   # 評価結果の正規化(mode=result)
 

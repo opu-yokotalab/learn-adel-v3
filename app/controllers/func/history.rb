@@ -11,18 +11,6 @@ class History < ApplicationController
   def initialize
     return 0
   end
-
-  # 履歴DBに接続
-  #def open_setHistory(base_pgsql_host, base_pgsql_port, pgsql_user_name, pgsql_user_passwd)
-  #  conn = PGconn.connect(base_pgsql_host, base_pgsql_port, "", "", "exam_logs_v3", pgsql_user_name, pgsql_user_passwd)
-  #  return conn
-  #end
-
-  # 履歴DB切断
-  #def close_setHistory(conn)
-  #  conn.close
-  #  return 0
-  #end
   
   # 出題テーブルの内容をRDBに格納
 	def put_setHistory(user_id, test_id, tblLine)
@@ -45,14 +33,7 @@ class History < ApplicationController
 	# 履歴格納先
 		setHisHash = Hash.new
 		
-		# 問合せ文を作る
-		#resStr = "select * from examination where examination_pkey='" + pkey + "';"
-		
-		# 問合せ
-		#res = conn.exec(resStr)
-		
 		res = Examination.find(:first, :conditions=>"examination_pkey = '#{pkey}'")
-		#res_idx = Examination.column_names
 		
 		setHisHash["id"]			= res[:id]
 		setHisHash["user_id"]		= res[:user_id]
@@ -65,12 +46,6 @@ class History < ApplicationController
 		setHisHash["examination_pkey"] = res[:examination_pkey].to_s
 		setHisHash["created_at"]	= res[:created_at]
 		setHisHash["updated_at"]	= res[:updated_at]
-		
-		#res.each do |resultLine|
-		#	resultLine.each_with_index do |tuple, idx|
-		#	setHisHash[res.fields[idx]] = tuple
-		#	end
-		#end
 		
 		return setHisHash
 	end
@@ -91,32 +66,6 @@ class History < ApplicationController
 		
 		pre_evaluate_log.save!
 		
-		# トランザクション処理
-		#res = conn.exec("BEGIN;")
-		#res.clear
-		# テーブルに値を入れる
-		#sql = "INSERT INTO pre_evaluate (evaluate_pkey, eval_key, chk_selection, eval_result, time, comp_eval, crct_total_weight, incrct_total_weight, total_weight, total_point) VALUES ('" + evalResultHash["eval_pkey"] + "','" + eval_key + "','" + evalResultHash["chk_selection"] + "','" + evalResultHash["eval_result"] + "','" + evalResultHash["time"] + "','false','" + evalResultHash["crct_weight"] + "','" + evalResultHash["incrct_weight"] + "','" + evalResultHash["total_weight"] + "','" + evalResultHash["total_point"] + "')"
-		#res = conn.exec(sql)
-		#res.clear      
-
-		# コミット
-		#res = conn.exec("COMMIT;")
-		#if res.status != PGresult::COMMAND_OK
-		#  res.clear
-		#  raise "commitコマンドに失敗しました。"
-		#end
-		#res.clear           
-
-		# ロールバック
-		#res = conn.exec("ROLLBACK;")
-		#res.clear
-
-		#res = conn.exec("select * from examination;")
-		#res = conn.query("select * from examination;")
-
-		#      p res
-		#res.clear
-
 		return 0
 	end
 
@@ -125,20 +74,8 @@ class History < ApplicationController
 		# 履歴格納先
 		preHisHash = Hash.new
 
-		# 問合せ文を作る(一番新しい行を1件)
-		#resStr = "select * from pre_evaluate where eval_key='" + pkey  +"' order by time desc offset 0 limit 1;"
-
-		# 問合せ
-		#res = conn.exec(resStr)
-		#p res.result.size
-		#res.result.each{|resultLine|
-		#	resultLine.each_with_index{|tuple, idx|
-		#		preHisHash[res.fields[idx]] = tuple
-		#	}
-		#}
 		
 		res = PreEvaluate.find(:first, :conditions=>"eval_key = '#{pkey}'", :order=>"created_at DESC")
-		#res_idx = Examination.column_names
 		
 		preHisHash["id"]			= res[:id]
 		preHisHash["chk_selection"]	= res[:chk_selection]
@@ -158,33 +95,6 @@ class History < ApplicationController
 
 	# 確定した解答の履歴を記録
 	def put_evalHistory(pkey)
-		# トランザクション処理
-		#res = conn.exec("BEGIN;")
-		#res.clear
-		#p pkey
-		# 問合せ文を作る
-		#sql = "update pre_evaluate set comp_eval='true' where evaluate_pkey='" + pkey + "';"
-		#res = conn.exec(sql)
-		#res.clear      
-
-		# コミット
-		#res = conn.exec("COMMIT;")
-		#if res.status != PGresult::COMMAND_OK
-		#	res.clear
-		#	raise "commitコマンドに失敗しました。"
-		#end
-		#res.clear           
-
-		# ロールバック
-		#res = conn.exec("ROLLBACK;")
-		#res.clear
-
-		#res = conn.exec("select * from examination;")
-		#res = conn.query("select * from examination;")
-
-		#      p res
-		#res.clear
-		
 		PreEvaluate.update_all("comp_eval = 'true'", "evaluate_pkey='#{pkey}'")
 		
 		return 0
@@ -192,9 +102,6 @@ class History < ApplicationController
 
   # 確定した解答の履歴を返す
   def get_evalHistory(test_key)
-	# 解答履歴テーブルを作成
-	# [{group_id => "", group_mark => "", eval_result => "", com_eval="ture", total_point = ""}, ...]
-
 	# 履歴格納先
 	evalAry = Array.new
 	eval_key = String.new
@@ -203,31 +110,20 @@ class History < ApplicationController
 	eval_result = String.new
 	total_point = String.new
     
-	# 問合せ文を作る
-	#resStr = "select * from examination where test_key='" + test_key  +"';"
-
 	# 問合せ
-	#res = conn.exec(resStr)
 	res = Examination.find(:all, :conditions=>"test_key='#{test_key}'")
 
 	# 該当するものそれぞれについて
 	res.each{|resultLine|
 		# 必要なものを抜き出し
-		#eval_key = resultLine[res.fields.index("examination_pkey")]
-		#group_id = resultLine[res.fields.index("group_id")]
-		#group_mark = resultLine[res.fields.index("group_mark")]
 		eval_key = resultLine[:examination_pkey]
 		group_id = resultLine[:group_id]
 		group_mark = resultLine[:group_mark]
 
 		# プレ評価のテーブルにも
-		#sqlStr = "select * from pre_evaluate where eval_key='" + resultLine[res.fields.index("examination_pkey")] + "' and comp_eval='true';"
-		#sql = conn.exec(sqlStr)
 		sql = PreEvaluate.find(:all, :conditions=>"eval_key='#{eval_key}' AND comp_eval='true'")
 
 		sql.each{|sqlLine|
-			#eval_result = sqlLine[sql.fields.index("eval_result")]
-			#total_point = sqlLine[sql.fields.index("total_point")]
 			eval_result = sqlLine[:eval_result]
 			total_point = sqlLine[:total_point]
 		}
@@ -240,12 +136,7 @@ end
 
 	# 指定されたuser_idを持つ最新のtest_keyを返す
 	def get_testidByUserid(user_id)
-		# 問合せ文を作る(一番新しい行を1件)
-		#resStr = "select test_key from examination where user_id='" + user_id  +"' order by time desc offset 0 limit 1;"
-		
 		# 問合せ
-		#res = conn.exec(resStr)
-		
 		res = Examination.find(:first, :conditions=>"user_id='#{user_id}'", :order=>"created_at DESC")
 		
 		return res[:test_key]
